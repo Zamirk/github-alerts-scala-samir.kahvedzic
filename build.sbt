@@ -1,16 +1,5 @@
 import Dependencies.Version.libs
 
-//github-alerts-scala-samir.kahvedzic
-
-ThisBuild / scalacOptions ++= Seq(
-//  "-Xfatal-warnings",
-//  "-feature",
-//  "-deprecation",
-//  "-language:higherKinds",
-//  "-unchecked",
-//  "disable -Ywarn-value-discard"
-)
-
 lazy val subscribe = (project in file("subscribe"))
   .settings(
     name := "subscribe",

@@ -26,7 +26,7 @@ case class SubscriberServiceRoute[F[_]](
             Ok(Encoder[SubscriptionResponse].apply(value).toString())
         }
     } yield response).handleErrorWith {
-      case UserNameNotFound(userName) => NotFound("Not found username: " + userName)
+      case UserNameNotFound(userName) => NotFound(s"Not found username $userName")
       case _                          => InternalServerError()
     }
   }

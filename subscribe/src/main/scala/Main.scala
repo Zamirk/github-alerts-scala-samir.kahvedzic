@@ -11,7 +11,7 @@ object Main extends IOApp {
   override def run(args: List[String]): IO[ExitCode] = {
     (for {
       logger <- Resource.liftK(Slf4jLogger.create[IO])
-      _      <- Resource.liftK(logger.info(s"Application start.")) //Our first log
+      _      <- Resource.liftK(logger.info(s"Application start."))
       config <- Resource.liftK(ConfigSource.default.loadF[IO, Config]())
       server <- HTTPServer.createBlazeServer[IO](config, FakeSubscriberService[IO](), logger)
     } yield {

@@ -14,7 +14,6 @@ trait SubscribeService[F[_]] {
 }
 
 object SubscribeService {
-  //Fake database for testing
   val database = Map(
     "1234" -> SubscriptionResponse(
       Subscription(
