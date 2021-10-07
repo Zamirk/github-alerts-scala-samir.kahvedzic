@@ -1,5 +1,7 @@
 import Dependencies.Version.libs
 
+addCommandAlias("ci-test", "scalafmtCheckAll; scalafmtSbtCheck; test")
+
 lazy val subscribe = (project in file("subscribe"))
   .settings(
     name := "subscribe",
