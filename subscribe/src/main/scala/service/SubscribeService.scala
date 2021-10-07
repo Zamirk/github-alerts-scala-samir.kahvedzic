@@ -10,11 +10,10 @@ trait SubscribeService[F[_]] {
     * @return
     */
   def getSubscription(name: String): F[Option[SubscriptionResponse]]
-
 }
 
 object SubscribeService {
-  val database = Map(
+  val mockDatabase = Map(
     "1234" -> SubscriptionResponse(
       Subscription(
         "47deg",
@@ -40,13 +39,8 @@ case class UserNameNotFound(userName: String) extends Exception
 case class FakeSubscriberService[F[_]: MonadError[*[_], Throwable]]()
     extends SubscribeService[F]() {
 
-  /** Returns F[Option[SubscriptionResponse]]
-    *
-    * @param name The id of the slack user
-    * @return
-    */
   override def getSubscription(userName: String): F[Option[SubscriptionResponse]] =
-    SubscribeService.database.get(userName) match {
+    SubscribeService.mockDatabase.get(userName) match {
       case Some(res) =>
         Applicative[F].pure(if (res.subscriptions.isEmpty) None else Some(res))
       case None =>
