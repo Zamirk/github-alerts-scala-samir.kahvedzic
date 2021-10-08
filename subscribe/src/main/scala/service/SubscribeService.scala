@@ -9,7 +9,7 @@ trait SubscribeService[F[_]] {
     * @param name               The id of the slack user
     * @return
     */
-  def getSubscription(name: String): F[Option[SubscriptionResponse]]
+  def getSubscription(name: String): F[SubscriptionResponse]
 }
 
 object SubscribeService {
@@ -34,15 +34,18 @@ object SubscribeService {
     "2345" -> SubscriptionResponse()
   )
 }
-case class UserNameNotFound(userName: String) extends Exception
+
+sealed trait ApiException extends Exception
+
+final case class UserNameNotFound(userName: String) extends ApiException
 
 case class FakeSubscriberService[F[_]: MonadError[*[_], Throwable]]()
     extends SubscribeService[F]() {
 
-  override def getSubscription(userName: String): F[Option[SubscriptionResponse]] =
+  override def getSubscription(userName: String): F[SubscriptionResponse] =
     SubscribeService.mockDatabase.get(userName) match {
       case Some(res) =>
-        Applicative[F].pure(if (res.subscriptions.isEmpty) None else Some(res))
+        Applicative[F].pure(res)
       case None =>
         ApplicativeError[F, Throwable].raiseError(UserNameNotFound(userName))
     }

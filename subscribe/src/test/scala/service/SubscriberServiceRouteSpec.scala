@@ -32,23 +32,21 @@ class SubscriberServiceRouteSpec
   def buildUri(s: String) = Uri.fromString(s).getOrElse(uri"/")
 
   val successfulResult = IO(
-    Some(
-      SubscriptionResponse(
-        Subscription(
-          "47deg",
-          "thool",
-          "2021-04-15T12:30:15"
-        ),
-        Subscription(
-          "higherkindness",
-          "skeuomorph",
-          "2021-04-26T12:45:25"
-        ),
-        Subscription(
-          "47degrees",
-          "github4s",
-          "2021-05-01T09:15:05"
-        )
+    SubscriptionResponse(
+      Subscription(
+        "47deg",
+        "thool",
+        "2021-04-15T12:30:15"
+      ),
+      Subscription(
+        "higherkindness",
+        "skeuomorph",
+        "2021-04-26T12:45:25"
+      ),
+      Subscription(
+        "47degrees",
+        "github4s",
+        "2021-05-01T09:15:05"
       )
     )
   )
@@ -87,23 +85,6 @@ class SubscriberServiceRouteSpec
         assert(true)
       })
   }
-
-//  "On /subscriber/1234, should return a json result" in {
-//    val logger           = stub[SelfAwareStructuredLogger[IO]]
-//    val subscribeService = stub[SubscribeService[IO]]
-//
-//    (subscribeService.getSubscription _)
-//      .when("1234")
-//      .returns(successfulResult)
-//
-//
-//    val aa: IO[fs2.Stream[IO, String]] = buildRoutes(logger, subscribeService)
-//      .orNotFound(
-//        buildRequest("1234")
-//      )
-//      .map(_.bodyText)
-//      .asserting(b => b.compile.foldMonoid shouldBe decodedjson)
-//  }
 
   "Calling /subscriber/notFoundId with a GET request should return an internal server error" in {
     val logger           = stub[SelfAwareStructuredLogger[IO]]

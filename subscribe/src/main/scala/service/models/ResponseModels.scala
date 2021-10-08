@@ -2,8 +2,8 @@ package service.models
 
 object ResponseModels {
 
-  case class SubscriptionResponse(subscriptions: Subscription*)
+  final case class SubscriptionResponse(subscriptions: Subscription*)
 
-  case class Subscription(organization: String, repository: String, subscribedAt: String)
+  final case class Subscription(organization: String, repository: String, subscribedAt: String)
 
 }

@@ -32,7 +32,7 @@ object HTTPServer {
   ): Kleisli[F, Request[F], Response[F]] = {
     Router(
       "/health"     -> HealthCheck[F](logger).routes,
-      "/subscriber" -> SubscriberServiceRoute[F](service, logger).routes
+      "/subscriber" -> new SubscriberServiceRoute[F](service, logger).routes
     ).orNotFound
   }
 }

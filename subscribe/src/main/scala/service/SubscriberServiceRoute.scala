@@ -9,7 +9,7 @@ import io.circe.Encoder
 import service.models.ResponseModels.SubscriptionResponse
 import io.circe.generic.auto._
 
-case class SubscriberServiceRoute[F[_]](
+class SubscriberServiceRoute[F[_]](
     service: SubscribeService[F],
     logger: SelfAwareStructuredLogger[F]
 )(implicit
@@ -18,13 +18,10 @@ case class SubscriberServiceRoute[F[_]](
   def routes: HttpRoutes[F] = HttpRoutes.of[F] { case _ @GET -> path =>
     (for {
       userData <- service.getSubscription(path.toString())
-      response <-
-        userData match {
-          case None => NotFound("Repositories empty.")
-          case Some(value) =>
-            logger.debug("Found data: " + value.toString)
-            Ok(Encoder[SubscriptionResponse].apply(value).toString())
-        }
+      response <- {
+        logger.debug("Found data: " + userData.toString)
+        Ok(Encoder[SubscriptionResponse].apply(userData).toString())
+      }
     } yield response).handleErrorWith {
       case UserNameNotFound(userName) => NotFound(s"Not found username $userName")
       case _                          => InternalServerError()
