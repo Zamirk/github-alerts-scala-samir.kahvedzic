@@ -8,6 +8,10 @@ This service aims to send messages to a users Slack account, composed of Github 
 A user may subscribe to the Github repositories for which they would like to receive events from.
 Slack commands are used to subscribe to events, or alter parameters of the service for the user.
 
+
+Api Routes 
+- GET /subscription/<user>
+
 Architecture
 
 - Subscriber Service
