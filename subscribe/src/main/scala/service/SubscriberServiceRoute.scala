@@ -6,28 +6,51 @@ import org.http4s.dsl.Http4sDsl
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import cats.implicits._
 import io.circe.Encoder
-import service.models.ResponseModels.SubscriptionResponse
+import service.models.ResponseModels.{InsertRepository, SubscriptionResponse}
 import io.circe.generic.auto._
+import org.http4s.circe.CirceSensitiveDataEntityDecoder.circeEntityDecoder
+import service.models.ResponseModels.InsertRepository.rD2
+
+case class InvalidRepository(repo: InsertRepository) extends Exception
+
+case class MalformedRepository(repo: InsertRepository) extends Exception
 
 case class SubscriberServiceRoute[F[_]](
     service: SubscribeService[F],
+    githubApiValidation: GithubApi[F],
     logger: SelfAwareStructuredLogger[F]
 )(implicit
     F: Async[F]
 ) extends Http4sDsl[F] {
-  def routes: HttpRoutes[F] = HttpRoutes.of[F] { case _ @GET -> path =>
-    (for {
-      userData <- service.getSubscription(path.toString())
-      response <-
-        userData match {
-          case None => NotFound("Repositories empty.")
-          case Some(value) =>
-            logger.debug("Found data: " + value.toString)
-            Ok(Encoder[SubscriptionResponse].apply(value).toString())
+  def routes: HttpRoutes[F] = HttpRoutes.of[F] {
+    case _ @GET -> path =>
+      (for {
+        userData <- service.getSubscription(path.toString())
+        response <-
+          userData match {
+            case None => NotFound("Repositories empty.")
+            case Some(value) =>
+              logger.debug("Found data: " + value.toString)
+              Ok(Encoder[SubscriptionResponse].apply(value).toString())
+          }
+      } yield response).handleErrorWith {
+        case UserNameNotFound(userName) => NotFound(s"Not found username $userName")
+        case _                          => InternalServerError()
+      }
+
+    case req @ PUT -> userName => {
+      (for {
+        decodeData <- req.as[InsertRepository]
+        _          <- githubApiValidation.validateRepo(decodeData)
+        res <- service.insertSubscription(userName.toString(), decodeData).flatMap {
+          case 1 => Created()
+          case _ => InternalServerError()
         }
-    } yield response).handleErrorWith {
-      case UserNameNotFound(userName) => NotFound(s"Not found username $userName")
-      case _                          => InternalServerError()
+      } yield { res }).handleErrorWith {
+        case InvalidRepository(_)   => BadRequest()
+        case MalformedRepository(_) => BadRequest()
+        case _                      => InternalServerError()
+      }
     }
   }
 

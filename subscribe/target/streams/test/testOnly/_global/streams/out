@@ -1,0 +1,13 @@
+[0m[[0m[0mdebug[0m] [0m[0mRunning TaskDef(service.SubscriberServiceRouteSpec, org.scalatest.tools.Framework$$anon$1@4029cba8, false, [SuiteSelector])[0m
+[0m[[0m[0minfo[0m] [0m[0m[32mSubscriberServiceRouteSpec:[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- On /subscriber/1234, a GET request should return a 200 status code[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m- On /subscriber/notFoundId, a GET request should return a internal server error *** FAILED ***[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  404 Not Found was not equal to 500 Internal Server Error (SubscriberServiceRouteSpec.scala:72)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[36mRun completed in 633 milliseconds.[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[36mTotal number of tests run: 2[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[36mSuites: completed 1, aborted 0[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[36mTests: succeeded 1, failed 1, canceled 0, ignored 0, pending 0[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m*** 1 TEST FAILED ***[0m[0m
+[0m[[0m[31merror[0m] [0m[0mFailed tests:[0m
+[0m[[0m[31merror[0m] [0m[0m	service.SubscriberServiceRouteSpec[0m
+[0m[[0m[31merror[0m] [0m[0m(subscribe / Test / [31mtestOnly[0m) sbt.TestsFailedException: Tests unsuccessful[0m

@@ -1,7 +1,7 @@
 package service
 
 import cats.{Applicative, ApplicativeError, MonadError}
-import service.models.ResponseModels.{Subscription, SubscriptionResponse}
+import service.models.ResponseModels.{InsertRepository, Subscription, SubscriptionResponse}
 
 trait SubscribeService[F[_]] {
 
@@ -10,10 +10,13 @@ trait SubscribeService[F[_]] {
     * @return
     */
   def getSubscription(name: String): F[Option[SubscriptionResponse]]
+
+  def insertSubscription(userName: String, sub: InsertRepository): F[Int]
+
 }
 
 object SubscribeService {
-  val mockDatabase = Map(
+  var mockDatabase = Map(
     "1234" -> SubscriptionResponse(
       Subscription(
         "47deg",
@@ -46,4 +49,14 @@ case class FakeSubscriberService[F[_]: MonadError[*[_], Throwable]]()
       case None =>
         ApplicativeError[F, Throwable].raiseError(UserNameNotFound(userName))
     }
+
+  override def insertSubscription(userName: String, sub: InsertRepository): F[Int] = {
+    SubscribeService.mockDatabase = SubscribeService.mockDatabase ++ Map(
+//      userName -> SubscriptionResponse(
+//        List(Subscription(sub.subscription.organization, sub.subscription.repository, ""))
+//      )
+    )
+    Applicative[F].pure(1)
+  }
+
 }

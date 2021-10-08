@@ -24,8 +24,9 @@ class SubscriberServiceRouteSpec
 
   private def buildRoutes[F[_]: Async](
       logger: SelfAwareStructuredLogger[F],
-      subscribeService: SubscribeService[F]
-  ): HttpRoutes[F] = new SubscriberServiceRoute[F](subscribeService, logger).routes
+      subscribeService: SubscribeService[F],
+      githubApi: GithubApi[F]
+  ): HttpRoutes[F] = new SubscriberServiceRoute[F](subscribeService, githubApi, logger).routes
 
   private def buildRequest(username: String): Request[IO] = Request[IO](GET, buildUri(username))
 
@@ -56,12 +57,13 @@ class SubscriberServiceRouteSpec
   "Calling /subscriber/1234, a GET request should return a 200 status code" in {
     val logger           = stub[SelfAwareStructuredLogger[IO]]
     val subscribeService = stub[SubscribeService[IO]]
+    val githubApi        = stub[GithubApi[IO]]
 
     (subscribeService.getSubscription _)
       .when("1234")
       .returns(successfulResult)
 
-    buildRoutes(logger, subscribeService)
+    buildRoutes(logger, subscribeService, githubApi)
       .orNotFound(
         buildRequest("1234")
       )
@@ -71,12 +73,13 @@ class SubscriberServiceRouteSpec
   "Calling /subscriber/1234, should call a service level method" in {
     val logger           = stub[SelfAwareStructuredLogger[IO]]
     val subscribeService = stub[SubscribeService[IO]]
+    val githubApi        = stub[GithubApi[IO]]
 
     (subscribeService.getSubscription _)
       .when("1234")
       .returns(successfulResult)
 
-    new SubscriberServiceRoute[IO](subscribeService, logger).routes
+    new SubscriberServiceRoute[IO](subscribeService, githubApi, logger).routes
       .orNotFound(buildRequest("1234"))
       .map(_ => {
 
@@ -108,12 +111,13 @@ class SubscriberServiceRouteSpec
   "Calling /subscriber/notFoundId with a GET request should return an internal server error" in {
     val logger           = stub[SelfAwareStructuredLogger[IO]]
     val subscribeService = stub[SubscribeService[IO]]
+    val githubApi        = stub[GithubApi[IO]]
 
     (subscribeService.getSubscription _)
       .when("notFoundId")
       .returns(IO.raiseError(UserNameNotFound("notFoundId")))
 
-    new SubscriberServiceRoute[IO](subscribeService, logger).routes
+    new SubscriberServiceRoute[IO](subscribeService, githubApi, logger).routes
       .orNotFound(Request[IO](GET, buildUri(s"notFoundId")))
       .asserting(_.status shouldBe NotFound)
   }
@@ -121,12 +125,13 @@ class SubscriberServiceRouteSpec
   "Calling /subscriber/unex, a GET request should return an InternalServerError" in {
     val logger           = stub[SelfAwareStructuredLogger[IO]]
     val subscribeService = stub[SubscribeService[IO]]
+    val githubApi        = stub[GithubApi[IO]]
 
     (subscribeService.getSubscription _)
       .when("unex")
       .returns(IO.raiseError(new Exception("I bet you didn't expect this.")))
 
-    new SubscriberServiceRoute[IO](subscribeService, logger).routes
+    new SubscriberServiceRoute[IO](subscribeService, githubApi, logger).routes
       .orNotFound(Request[IO](GET, buildUri(s"unex")))
       .asserting(_.status shouldBe InternalServerError)
   }

@@ -16,23 +16,25 @@ object HTTPServer {
   def createBlazeServer[F[_]: Async](
       config: Config,
       service: SubscribeService[F],
-      logger: SelfAwareStructuredLogger[F]
+      logger: SelfAwareStructuredLogger[F],
+      githubApi: GithubApi[F]
   ): Resource[F, Server] = {
     BlazeServerBuilder[F](global)
       .bindHttp(config.port, config.host)
       .withHttpApp(
-        generateRouter(service, logger)
+        generateRouter(service, logger, githubApi)
       )
       .resource
   }
 
   def generateRouter[F[_]: Async](
       service: SubscribeService[F],
-      logger: SelfAwareStructuredLogger[F]
+      logger: SelfAwareStructuredLogger[F],
+      githubApi: GithubApi[F]
   ): Kleisli[F, Request[F], Response[F]] = {
     Router(
       "/health"     -> HealthCheck[F](logger).routes,
-      "/subscriber" -> SubscriberServiceRoute[F](service, logger).routes
+      "/subscriber" -> SubscriberServiceRoute[F](service, githubApi, logger).routes
     ).orNotFound
   }
 }

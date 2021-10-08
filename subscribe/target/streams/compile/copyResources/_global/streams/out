@@ -1,0 +1,4 @@
+[0m[[0m[0mdebug[0m] [0m[0mCopy resource mappings: [0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/Users/samir/Desktop/github-alerts-scala-samir.kahvedzic/subscribe/src/main/resources/logback.xml,/Users/samir/Desktop/github-alerts-scala-samir.kahvedzic/subscribe/target/scala-2.13/classes/logback.xml)[0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/Users/samir/Desktop/github-alerts-scala-samir.kahvedzic/subscribe/src/main/resources/Application.conf,/Users/samir/Desktop/github-alerts-scala-samir.kahvedzic/subscribe/target/scala-2.13/classes/Application.conf)[0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/Users/samir/Desktop/github-alerts-scala-samir.kahvedzic/subscribe/src/main/resources/META-INF/native-image/com/47Degrees/githubalertsproject/reflect-config.json,/Users/samir/Desktop/github-alerts-scala-samir.kahvedzic/subscribe/target/scala-2.13/classes/META-INF/native-image/com/47Degrees/githubalertsproject/reflect-config.json)[0m

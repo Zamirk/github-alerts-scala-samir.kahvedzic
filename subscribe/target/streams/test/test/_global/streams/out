@@ -1,0 +1,11 @@
+[0m[[0m[0mdebug[0m] [0m[0mRunning TaskDef(service.SubscriberServiceRouteSpec, org.scalatest.tools.Framework$$anon$1@673408c3, false, [SuiteSelector])[0m
+[0m[[0m[0minfo[0m] [0m[0m[32mSubscriberServiceRouteSpec:[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- On /subscriber/1234, a GET request should return a 200 status code[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- On /subscriber/0123, a GET request should return a 404 not found status code[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[36mRun completed in 1 second, 435 milliseconds.[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[36mTotal number of tests run: 2[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[36mSuites: completed 1, aborted 0[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[36mTests: succeeded 2, failed 0, canceled 0, ignored 0, pending 0[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32mAll tests passed.[0m[0m
+[0m[[0m[0mdebug[0m] [0m[0mPassed tests:[0m
+[0m[[0m[0mdebug[0m] [0m[0m	service.SubscriberServiceRouteSpec[0m
