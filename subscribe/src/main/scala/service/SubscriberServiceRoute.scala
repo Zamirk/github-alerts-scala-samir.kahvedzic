@@ -3,22 +3,27 @@ package service
 import cats.effect.Async
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
-import org.typelevel.log4cats.SelfAwareStructuredLogger
+import org.typelevel.log4cats.{Logger, SelfAwareStructuredLogger}
 import cats.implicits._
 import io.circe.Encoder
-import service.models.ResponseModels.{InsertRepository, SubscriptionResponse}
+import service.models.ApiModels.{InsertRepository, SubscriptionResponse}
 import io.circe.generic.auto._
 import org.http4s.circe.CirceSensitiveDataEntityDecoder.circeEntityDecoder
-import service.models.ResponseModels.InsertRepository.rD2
+import service.BadRepositoryException.{InvalidRepository, MalformedRepository}
+import service.models.ApiModels.InsertRepository.rD2
 
-case class InvalidRepository(repo: InsertRepository) extends Exception
+sealed trait BadRepositoryException extends Exception
 
-case class MalformedRepository(repo: InsertRepository) extends Exception
+object BadRepositoryException {
+  final case class InvalidRepository(repo: InsertRepository) extends BadRepositoryException
 
-case class SubscriberServiceRoute[F[_]](
+  final case class MalformedRepository(repo: InsertRepository) extends BadRepositoryException
+}
+
+final case class SubscriberServiceRoute[F[_]](
     service: SubscribeService[F],
     githubApiValidation: GithubApi[F],
-    logger: SelfAwareStructuredLogger[F]
+    logger: Logger[F]
 )(implicit
     F: Async[F]
 ) extends Http4sDsl[F] {
@@ -26,18 +31,14 @@ case class SubscriberServiceRoute[F[_]](
     case _ @GET -> path =>
       (for {
         userData <- service.getSubscription(path.toString())
-        response <-
-          userData match {
-            case None => NotFound("Repositories empty.")
-            case Some(value) =>
-              logger.debug("Found data: " + value.toString)
-              Ok(Encoder[SubscriptionResponse].apply(value).toString())
-          }
+        response <- {
+          logger.debug("Found data: " + userData.toString)
+          Ok(Encoder[SubscriptionResponse].apply(userData).toString())
+        }
       } yield response).handleErrorWith {
         case UserNameNotFound(userName) => NotFound(s"Not found username $userName")
         case _                          => InternalServerError()
       }
-
     case req @ PUT -> userName => {
       (for {
         decodeData <- req.as[InsertRepository]
@@ -46,12 +47,11 @@ case class SubscriberServiceRoute[F[_]](
           case 1 => Created()
           case _ => InternalServerError()
         }
-      } yield { res }).handleErrorWith {
+      } yield res).flatMap(_ => Created()).handleErrorWith {
         case InvalidRepository(_)   => BadRequest()
         case MalformedRepository(_) => BadRequest()
         case _                      => InternalServerError()
       }
-    }
   }
 
 }

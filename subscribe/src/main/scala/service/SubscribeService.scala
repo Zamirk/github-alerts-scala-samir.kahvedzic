@@ -1,7 +1,7 @@
 package service
 
 import cats.{Applicative, ApplicativeError, MonadError}
-import service.models.ResponseModels.{InsertRepository, Subscription, SubscriptionResponse}
+import service.models.ApiModels.{InsertRepository, Subscription, SubscriptionResponse}
 
 trait SubscribeService[F[_]] {
 
@@ -9,7 +9,7 @@ trait SubscribeService[F[_]] {
     * @param name               The id of the slack user
     * @return
     */
-  def getSubscription(name: String): F[Option[SubscriptionResponse]]
+  def getSubscription(name: String): F[SubscriptionResponse]
 
   def insertSubscription(userName: String, sub: InsertRepository): F[Int]
 
@@ -36,27 +36,48 @@ object SubscribeService {
     ),
     "2345" -> SubscriptionResponse()
   )
-}
-case class UserNameNotFound(userName: String) extends Exception
 
-case class FakeSubscriberService[F[_]: MonadError[*[_], Throwable]]()
-    extends SubscribeService[F]() {
+  def make[F[_]] = new SubscribeService[F] {
+    override def getSubscription(userName: String): F[SubscriptionResponse] =
+      ??? // Production implementation
 
-  override def getSubscription(userName: String): F[Option[SubscriptionResponse]] =
-    SubscribeService.mockDatabase.get(userName) match {
-      case Some(res) =>
-        Applicative[F].pure(if (res.subscriptions.isEmpty) None else Some(res))
-      case None =>
-        ApplicativeError[F, Throwable].raiseError(UserNameNotFound(userName))
-    }
-
-  override def insertSubscription(userName: String, sub: InsertRepository): F[Int] = {
-    SubscribeService.mockDatabase = SubscribeService.mockDatabase ++ Map(
-//      userName -> SubscriptionResponse(
-//        List(Subscription(sub.subscription.organization, sub.subscription.repository, ""))
-//      )
-    )
-    Applicative[F].pure(1)
+    override def insertSubscription(userName: String, sub: InsertRepository): F[Int] = ???
   }
 
+  def stub[F[_]: MonadError[*[_], Throwable]] = new SubscribeService[F] {
+    override def getSubscription(userName: String): F[SubscriptionResponse] =
+      SubscribeService.mockDatabase.get(userName) match {
+        case Some(res) =>
+          Applicative[F].pure(res)
+        case None =>
+          ApplicativeError[F, Throwable].raiseError(UserNameNotFound(userName))
+      }
+
+    override def insertSubscription(userName: String, sub: InsertRepository): F[Int] = {
+
+      SubscribeService.mockDatabase.get(userName) match {
+        case Some(a) => a.subscriptions ++ Subscription(sub.subscription.organization, sub.subscription.organization, "")
+        case None => SubscribeService.mockDatabase = SubscribeService.mockDatabase ++ Map(userName -> SubscriptionResponse(
+          Subscription(sub.subscription.organization, sub.subscription.organization, "")
+        ))
+      }
+
+    }
+
+
+
+      SubscribeService.mockDatabase = SubscribeService.mockDatabase ++ Map(
+        //      userName -> SubscriptionResponse(
+        //        List(Subscription(sub.subscription.organization, sub.subscription.repository, ""))
+        //      )
+      )
+      Applicative[F].pure(1)
+    }
+  }
+
+
 }
+
+sealed trait ApiException extends Exception
+
+final case class UserNameNotFound(userName: String) extends ApiException

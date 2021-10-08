@@ -1,4 +1,4 @@
-import sbt.{ModuleID, _}
+import sbt._
 
 object Dependencies {
 
@@ -32,9 +32,8 @@ object Dependencies {
     }
 
     lazy val testing: Seq[ModuleID] = List(
-      "org.scalatest" %% "scalatest" % Version.ScalaTestVersion % "it,test",
-      "org.scalamock" %% "scalamock" % Version.ScalaMockVersion % "it,test",
-//      "org.typelevel" %% "cats-effect-laws"              % Version.catsEffect,
+      "org.scalatest" %% "scalatest"                     % Version.ScalaTestVersion % "it,test",
+      "org.scalamock" %% "scalamock"                     % Version.ScalaMockVersion % "it,test",
       "org.typelevel" %% "cats-effect-testing-scalatest" % Version.catsEffectTesting,
       "org.typelevel" %% "cats-effect-testkit"           % Version.catsEffect
     )
@@ -45,6 +44,7 @@ object Dependencies {
     )
 
     lazy val log4cats: Seq[ModuleID] = List(
+      "org.typelevel" %% "log4cats-noop"   % Version.log4Cats,
       "org.typelevel" %% "log4cats-core"   % Version.log4Cats,
       "org.typelevel" %% "log4cats-slf4j"  % Version.log4Cats,
       "ch.qos.logback" % "logback-classic" % Version.classicLogger
