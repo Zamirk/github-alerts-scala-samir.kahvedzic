@@ -52,12 +52,8 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec with Mat
       method: Method = GET,
       body: Option[String] = None
   ): Request[F] = {
-    println("Path: " + path.toString())
-    println("Method: " + method.toString())
-
     body match {
       case Some(body) =>
-        println("Body: " + body)
         Request[F](method, Uri.fromString(path).getOrElse(uri"/")).withEntity(body)
       case None => Request[F](method, Uri.fromString(path).getOrElse(uri"/"))
     }
