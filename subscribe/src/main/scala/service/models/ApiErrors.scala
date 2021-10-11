@@ -8,8 +8,6 @@ object ApiErrors {
 
   object BadRepositoryException {
     final case class InvalidRepository(repo: InsertRepository) extends BadRepositoryException
-
-    final case class MalformedRepository() extends BadRepositoryException
   }
 
   sealed trait ApiException extends Exception
