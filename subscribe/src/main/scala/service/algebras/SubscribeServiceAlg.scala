@@ -1,19 +1,11 @@
 package service.algebras
 
-import service.models.ApiModels.{InsertRepository, SubscriptionResponse}
+import service.models.ApiModels.{InsertRepository, SlackUserId, SubscriptionsResponse}
 
 trait SubscribeServiceAlg[F[_]] {
 
-  /** Returns a list of subscriptions
-    * @param name               The id of the slack user
-    * @return
-    */
-  def getSubscription(name: String): F[SubscriptionResponse]
+  def getSubcriptions(s: SlackUserId): F[SubscriptionsResponse]
 
-  /** @param userName
-    * @param sub
-    * @return
-    */
-  def insertSubscription(userName: String, sub: InsertRepository): F[Unit]
+  def insertSubscription(s: SlackUserId, sub: InsertRepository): F[Unit]
 
 }

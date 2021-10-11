@@ -17,7 +17,7 @@ import service.route.HTTPServer
 import service.helpers.DefaultAssertions._
 import io.circe.parser._
 import service.helpers.SampleData
-import service.models.ApiModels.{InsertRepository, SubscriptionResponse}
+import service.models.ApiModels.{InsertRepository, SubscriptionsResponse}
 
 import scala.concurrent.ExecutionContext
 
@@ -116,7 +116,7 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec with Mat
         assertRequest[IO](
           request = buildRequest("/subscriber/1234"),
           assertion = (r: Response[IO]) =>
-            decode[SubscriptionResponse](decodeString(r)) match {
+            decode[SubscriptionsResponse](decodeString(r)) match {
               case Left(_)     => assert(false)
               case Right(data) => assert(data === SampleData.sampleData)
             }
