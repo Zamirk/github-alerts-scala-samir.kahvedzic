@@ -14,12 +14,12 @@ object GithubApiAlg {
     def validateRepo(repo: service.models.ApiModels.InsertRepository): F[Unit] = {
       client.get(
         uri"https://api.github.com" / "repos" / repo.subscription.organization / repo.subscription.repository / "contents"
-      )(a =>
-        if (a.status == Ok)
+      ) {
+        case Status.Successful(_) =>
           Applicative[F].pure(())
-        else
+        case _ =>
           ApplicativeError[F, Throwable].raiseError(InvalidRepository(repo))
-      )
+      }
     }
   }
 
