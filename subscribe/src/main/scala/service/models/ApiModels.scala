@@ -19,18 +19,18 @@ object ApiModels {
     implicit val se: Encoder[Subscription] = deriveEncoder[Subscription]
   }
 
+  final case class InsertRepository(subscription: Repository)
+
+  object InsertRepository {
+    implicit val ri: Decoder[InsertRepository]  = deriveDecoder[InsertRepository]
+    implicit val ri2: Encoder[InsertRepository] = deriveEncoder[InsertRepository]
+  }
+
   final case class Repository(organization: String, repository: String)
 
   object Repository {
     implicit val rD1: Decoder[Repository] = deriveDecoder[Repository]
     implicit val rE2: Encoder[Repository] = deriveEncoder[Repository]
-  }
-
-  final case class InsertRepository(subscription: Repository)
-
-  object InsertRepository {
-    implicit val rD2: Decoder[InsertRepository] = deriveDecoder[InsertRepository]
-    implicit val rE3: Encoder[InsertRepository] = deriveEncoder[InsertRepository]
   }
 
 }
