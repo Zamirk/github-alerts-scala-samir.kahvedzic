@@ -9,7 +9,6 @@ import org.http4s.dsl.io._
 import org.http4s.implicits._
 import org.scalatest.compatible.Assertion
 import org.scalatest.freespec.AsyncFreeSpec
-import org.scalatest.matchers.should.Matchers
 import org.typelevel.log4cats.noop.NoOpLogger
 import service.algebras.{GithubApiAlg, SubscribeServiceAlg}
 import service.interpreters.{GithubApiAlg, SubscribeServiceAlg}
@@ -17,11 +16,11 @@ import service.route.HTTPServer
 import service.helpers.DefaultAssertions._
 import io.circe.parser._
 import service.helpers.SampleData
-import service.models.ApiModels.{InsertRepository, SubscriptionResponse}
+import service.models.ApiModels.{InsertRepository, SubscriptionsResponse}
 
 import scala.concurrent.ExecutionContext
 
-class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
+class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
   override implicit def executionContext: ExecutionContext =
     scala.concurrent.ExecutionContext.global
 
@@ -52,12 +51,8 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec with Mat
       method: Method = GET,
       body: Option[String] = None
   ): Request[F] = {
-    println("Path: " + path.toString())
-    println("Method: " + method.toString())
-
     body match {
       case Some(body) =>
-        println("Body: " + body)
         Request[F](method, Uri.fromString(path).getOrElse(uri"/")).withEntity(body)
       case None => Request[F](method, Uri.fromString(path).getOrElse(uri"/"))
     }
@@ -116,7 +111,7 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec with Mat
         assertRequest[IO](
           request = buildRequest("/subscriber/1234"),
           assertion = (r: Response[IO]) =>
-            decode[SubscriptionResponse](decodeString(r)) match {
+            decode[SubscriptionsResponse](decodeString(r)) match {
               case Left(_)     => assert(false)
               case Right(data) => assert(data === SampleData.sampleData)
             }
@@ -133,7 +128,7 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec with Mat
           request = buildRequest(
             path = "/subscriber/8000",
             method = PUT,
-            body = Some(Encoder[InsertRepository].apply(SampleData.dataToInsert).toString())
+            body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
           ),
           assertion = createdStatus()
         )
@@ -144,7 +139,7 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec with Mat
           request = buildRequest(
             path = "/subscriber/8000",
             method = PUT,
-            body = Some(Encoder[InsertRepository].apply(SampleData.dataToInsert).toString())
+            body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
           ),
           githubApi = brokenGithubService[IO],
           assertion = internalServerErrorStatus()
@@ -170,7 +165,7 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec with Mat
 
           assertRequest[IO](
             request = buildRequest(
-              path = "/subscriber/8000",
+              path = "/subscriber/1234",
               method = PUT,
               body =
                 Some(Encoder[InsertRepository].apply(SampleData.nonExistantOrganisation).toString())
@@ -183,11 +178,80 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec with Mat
 
           assertRequest[IO](
             request = buildRequest(
-              path = "/subscriber/8000",
+              path = "/subscriber/1234",
               method = PUT,
               body = Some(Encoder[InsertRepository].apply(SampleData.dataToInsert2).toString())
             ),
             assertion = badRequestStatus()
+          )
+        }
+      }
+    }
+
+    "with a DELETE request " - {
+
+      "should return a NoContent status code when valid data is sent" in {
+
+        assertRequest[IO](
+          request = buildRequest(
+            path = "/subscriber/1234",
+            method = DELETE,
+            body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
+          ),
+          assertion = noContentStatus()
+        )
+      }
+
+      "should return an InternalServerError status code when there is a service level error" in {
+        assertRequest[IO](
+          request = buildRequest(
+            path = "/subscriber/1234",
+            method = PUT,
+            body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
+          ),
+          githubApi = brokenGithubService[IO],
+          assertion = internalServerErrorStatus()
+        )
+      }
+
+      "should return a BadRequest when malformed data is sent" in {
+
+        assertRequest[IO](
+          request = buildRequest(
+            path = "/subscriber/8000",
+            method = DELETE,
+            body = Some("{Malformed Json")
+          ),
+          githubApi = brokenGithubService[IO],
+          assertion = badRequestStatus()
+        )
+
+      }
+
+      "should return a Not Found if " - {
+
+        "the provided user id is not found" in {
+
+          assertRequest[IO](
+            request = buildRequest(
+              path = "/subscriber/121212",
+              method = DELETE,
+              body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
+            ),
+            assertion = notFoundStatus()
+          )
+        }
+
+        "the repository is not found" in {
+
+          assertRequest[IO](
+            request = buildRequest(
+              path = "/subscriber/1234",
+              method = DELETE,
+              body =
+                Some(Encoder[InsertRepository].apply(SampleData.nonExistantOrganisation).toString())
+            ),
+            assertion = notFoundStatus()
           )
         }
       }

@@ -5,11 +5,13 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 
 object ApiModels {
 
-  final case class SubscriptionResponse(subscriptions: Subscription*)
+  final case class SlackUserId(s: String)
 
-  object SubscriptionResponse {
-    implicit val sd: Decoder[SubscriptionResponse] = deriveDecoder[SubscriptionResponse]
-    implicit val se: Encoder[SubscriptionResponse] = deriveEncoder[SubscriptionResponse]
+  final case class SubscriptionsResponse(subscriptions: List[Subscription] = Nil)
+
+  object SubscriptionsResponse {
+    implicit val sd: Decoder[SubscriptionsResponse] = deriveDecoder[SubscriptionsResponse]
+    implicit val se: Encoder[SubscriptionsResponse] = deriveEncoder[SubscriptionsResponse]
   }
 
   final case class Subscription(organization: String, repository: String, subscribedAt: String)
