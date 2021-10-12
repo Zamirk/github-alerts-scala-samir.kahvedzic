@@ -1,6 +1,5 @@
 # Github Alerts Project 2021, 47 Degrees
 
-
 ---
 Samir Kahvedzic
 
