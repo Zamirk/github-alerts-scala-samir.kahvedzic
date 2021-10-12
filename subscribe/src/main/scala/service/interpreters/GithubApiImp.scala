@@ -2,7 +2,7 @@ package service.interpreters
 
 import cats.effect.kernel.Async
 import cats.{Applicative, ApplicativeError, MonadError}
-import org.http4s.Status.Ok
+import org.http4s.Status
 import org.http4s.client.Client
 import service.algebras.GithubApiAlg
 import service.models.ApiErrors.BadRepositoryException.InvalidRepository
