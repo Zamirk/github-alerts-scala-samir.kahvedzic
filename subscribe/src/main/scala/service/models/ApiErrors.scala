@@ -1,6 +1,6 @@
 package service.models
 
-import service.models.ApiModels.InsertRepository
+import service.models.ApiModels.{InsertRepository}
 
 import scala.util.control.NoStackTrace
 
@@ -12,10 +12,12 @@ object ApiErrors {
     final case class InvalidRepository(repo: InsertRepository) extends BadRepositoryException
   }
 
-  sealed trait ApiException extends NoStackTrace
+  sealed trait SubscriberServiceException extends NoStackTrace
 
-  object ApiException {
-    final case class UserNameNotFound(userName: String) extends ApiException
+  object SubscriberServiceException {
+    final case class UserNameNotFound(userName: String)         extends SubscriberServiceException
+    final case class RepositoryNotFound(repo: InsertRepository) extends SubscriberServiceException
+
   }
 
 }

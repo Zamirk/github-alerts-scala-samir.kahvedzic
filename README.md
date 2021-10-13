@@ -1,6 +1,5 @@
 # Github Alerts Project 2021, 47 Degrees
 
-
 ---
 Samir Kahvedzic
 
@@ -12,6 +11,8 @@ Slack commands are used to subscribe to events, or alter parameters of the servi
 
 Api Routes 
 - GET /subscription/<user>
+- DELETE /subscription/<user>
+- PUT /subscription/<user>
 
 ``` Example request
 Method: GET
@@ -36,9 +37,18 @@ Response Body: {
 }
 ```
 
-- PUT /subscription/<user>
 ``` Example request
 Method: PUT
+Body: {
+  "subscription" : {
+    "organization" : "47deg",
+    "repository" : "thool"
+  }
+}
+```
+
+``` Example request
+Method: DELETE
 Body: {
   "subscription" : {
     "organization" : "47deg",

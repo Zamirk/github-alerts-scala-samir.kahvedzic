@@ -4,7 +4,7 @@ import service.models.ApiModels.{InsertRepository, Repository, Subscription, Sub
 
 object SampleData {
 
-  val dataToInsert = {
+  val sampleDataOne = {
     InsertRepository(
       Repository(
         "47deg",
@@ -18,6 +18,15 @@ object SampleData {
       Repository(
         "47deg",
         "thool2"
+      )
+    )
+  }
+
+  val sampleData3 = {
+    InsertRepository(
+      Repository(
+        "higherkindness",
+        "skeuomorph"
       )
     )
   }

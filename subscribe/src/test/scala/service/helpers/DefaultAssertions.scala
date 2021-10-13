@@ -15,6 +15,9 @@ object DefaultAssertions {
   def createdStatus[F[_]](): Response[F] => Assertion = (r: Response[F]) =>
     r.status shouldBe Created
 
+  def noContentStatus[F[_]](): Response[F] => Assertion = (r: Response[F]) =>
+    r.status shouldBe NoContent
+
   def badRequestStatus[F[_]](): Response[F] => Assertion = (r: Response[F]) =>
     r.status shouldBe BadRequest
 
