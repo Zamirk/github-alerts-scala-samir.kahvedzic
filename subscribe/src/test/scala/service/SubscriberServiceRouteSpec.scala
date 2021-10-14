@@ -1,6 +1,6 @@
 package service
 
-import cats.MonadError
+import cats.{MonadThrow}
 import cats.effect.{Async, IO}
 import cats.effect.testing.scalatest.AsyncIOSpec
 import io.circe.Encoder
@@ -66,11 +66,10 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
     }
   }
 
-  private def brokensubscriptionService[F[_]: MonadError[*[_], Throwable]]
-      : Option[SubscribeServiceAlg[F]] =
+  private def brokensubscriptionService[F[_]: MonadThrow]: Option[SubscribeServiceAlg[F]] =
     Some(SubscribeServiceAlg.stub2[F])
 
-  private def brokenGithubService[F[_]: MonadError[*[_], Throwable]]: Option[GithubApiAlg[F]] =
+  private def brokenGithubService[F[_]: MonadThrow]: Option[GithubApiAlg[F]] =
     Some(GithubApiAlg.stub2[F])
 
   "Calling /subscription/{xxx}" - {

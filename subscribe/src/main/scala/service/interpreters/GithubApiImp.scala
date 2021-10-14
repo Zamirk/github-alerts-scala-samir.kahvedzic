@@ -1,12 +1,13 @@
 package service.interpreters
 
 import cats.effect.kernel.Async
-import cats.{Applicative, ApplicativeError, MonadError}
+import cats.{MonadThrow}
 import org.http4s.Status
 import org.http4s.client.Client
 import service.algebras.GithubApiAlg
 import service.models.ApiErrors.BadRepositoryException.InvalidRepository
 import org.http4s.implicits._
+import service.models.ApiErrors.SubscriberServiceException.UnexpectedError
 
 object GithubApiAlg {
 
@@ -16,28 +17,28 @@ object GithubApiAlg {
         uri"https://api.github.com" / "repos" / repo.subscription.organization / repo.subscription.repository / "contents"
       ) {
         case Status.Successful(_) =>
-          Applicative[F].pure(())
+          MonadThrow[F].unit
         case _ =>
-          ApplicativeError[F, Throwable].raiseError(InvalidRepository(repo))
+          MonadThrow[F].raiseError(InvalidRepository(repo))
       }
     }
   }
 
-  def stub2[F[_]: MonadError[*[_], Throwable]]: GithubApiAlg[F] = new GithubApiAlg[F] {
+  def stub2[F[_]: MonadThrow]: GithubApiAlg[F] = new GithubApiAlg[F] {
 
     override def validateRepo(repo: service.models.ApiModels.InsertRepository): F[Unit] = {
-      ApplicativeError[F, Throwable].raiseError(new Exception("Unknown Error"))
+      MonadThrow[F].raiseError(UnexpectedError())
     }
   }
 
-  def stub[F[_]: MonadError[*[_], Throwable]]: GithubApiAlg[F] = new GithubApiAlg[F] {
+  def stub[F[_]: MonadThrow]: GithubApiAlg[F] = new GithubApiAlg[F] {
 
     override def validateRepo(repo: service.models.ApiModels.InsertRepository): F[Unit] = {
       GithubApiAlg.mockGithub.get(repo.subscription.organization) match {
         case Some(r) if r == repo.subscription.repository =>
-          Applicative[F].pure(())
+          MonadThrow[F].unit
         case _ =>
-          ApplicativeError[F, Throwable].raiseError(InvalidRepository(repo))
+          MonadThrow[F].raiseError(InvalidRepository(repo))
       }
     }
   }
