@@ -16,7 +16,7 @@ class JsonEncodingSpec extends AnyFreeSpec with Matchers {
   "SlackResponseModel should successfully encode and decode" in {
 
     val data = SlackResponseBody(
-      ResponseField.In_channel,
+      ResponseField.InChannel,
       "It's 80 degrees right now.",
       List("*It's 80 degrees right now.*", "Partly cloudy today and tomorrow").map(m =>
         SlackMessageBlock1(

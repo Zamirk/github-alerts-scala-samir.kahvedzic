@@ -32,6 +32,7 @@ object SubscribeServiceAlg {
 
     override def deleteSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] = ???
 
+    //TODO #1f3erv0 Required functionality is to be implemented in a future ticket
     override def postSlackCommand(s: SlackUserId, sub: SlackCommand): F[SlackResponseBody] = ???
   }
 

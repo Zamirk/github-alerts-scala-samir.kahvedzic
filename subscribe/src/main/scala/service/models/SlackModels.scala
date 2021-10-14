@@ -2,7 +2,7 @@ package service.models
 
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import service.models.SlackModels.ResponseField.In_channel
+import service.models.SlackModels.ResponseField.InChannel
 
 object SlackModels {
 
@@ -19,18 +19,18 @@ object SlackModels {
   sealed trait ResponseField
 
   object ResponseField {
-    case object In_channel extends ResponseField
-    case object Ephemeral  extends ResponseField
+    case object InChannel extends ResponseField
+    case object Ephemeral extends ResponseField
 
     implicit val decodeMode: Decoder[ResponseField] = Decoder[String].emap {
-      case "in_channel" => Right(In_channel)
+      case "in_channel" => Right(InChannel)
       case "ephermeral" => Right(Ephemeral)
       case other        => Left(s"Invalid mode: $other")
     }
 
     implicit val encodeMode: Encoder[ResponseField] = Encoder[String].contramap {
-      case In_channel => "in_channel"
-      case Ephemeral  => "ephermeral"
+      case InChannel => "in_channel"
+      case Ephemeral => "ephemeral"
     }
   }
 
@@ -60,7 +60,7 @@ object SlackModels {
 
     def generateSlackResponse(text: String, msgBlock: List[String]): SlackResponseBody = {
       SlackResponseBody(
-        In_channel,
+        InChannel,
         text,
         msgBlock.map(m => SlackMessageBlock1("section", SlackMessageBlock2("mrkdwn", m)))
       )
