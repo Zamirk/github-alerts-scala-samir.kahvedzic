@@ -3,18 +3,27 @@ package service.models
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import service.models.SlackModels.ResponseField.InChannel
-
+import service.models.SlackModels.SlackCommand.{Command, Text}
+import service.models.SlackModels.SlackCommand._
 object SlackModels {
 
   lazy val formData: List[String] = List("command", "text", "response_url", "trigger_id", "user_id")
 
   case class SlackCommand(
-      command: String,
-      text: String,
-      responseUrl: String,
-      triggerId: String,
-      userId: String
+      command: Command,
+      text: Text,
+      responseUrl: ResponseUrl,
+      triggerId: TriggerId,
+      userId: UserId
   )
+
+  object SlackCommand {
+    case class Command(s: String)
+    case class Text(s: String)
+    case class ResponseUrl(s: String)
+    case class TriggerId(s: String)
+    case class UserId(s: String)
+  }
 
   sealed trait ResponseField
 
@@ -24,7 +33,7 @@ object SlackModels {
 
     implicit val decodeMode: Decoder[ResponseField] = Decoder[String].emap {
       case "in_channel" => Right(InChannel)
-      case "ephermeral" => Right(Ephemeral)
+      case "ephemeral"  => Right(Ephemeral)
       case other        => Left(s"Invalid mode: $other")
     }
 

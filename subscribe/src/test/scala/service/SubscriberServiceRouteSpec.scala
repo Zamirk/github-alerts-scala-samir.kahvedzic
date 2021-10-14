@@ -30,7 +30,7 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
   override implicit def executionContext: ExecutionContext =
     scala.concurrent.ExecutionContext.global
 
-  val malformedJson = Some("{Malformed Json")
+  val malformedJson = Some("Malformed Json")
 
   private def decodeString: Response[IO] => String = { (r: Response[IO]) =>
     r.body.compile.toVector.unsafeRunSync().map(_.toChar).mkString

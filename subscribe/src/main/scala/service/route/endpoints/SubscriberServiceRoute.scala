@@ -13,6 +13,7 @@ import org.http4s.circe.CirceEntityDecoder._
 import org.http4s._
 import org.http4s.circe._
 import service.models.SlackModels
+import service.models.SlackModels.SlackCommand.{Command, ResponseUrl, Text, TriggerId, UserId}
 import service.models.SlackModels.{SlackCommand, SlackResponseBody}
 
 final case class SubscriberServiceRoute[F[_]](
@@ -67,15 +68,15 @@ final case class SubscriberServiceRoute[F[_]](
       req
         .decode[UrlForm] { d =>
           SlackModels.formData.traverse(d.values.get(_).flatMap(_.headOption)) match {
-            case Some(List(command, text, responseUrl, trigger, user)) =>
+            case Some(List(c, t, r, tr, u)) =>
               for {
                 response <- service.postSlackCommand(
-                  SlackUserId(user),
-                  SlackCommand(command, text, responseUrl, trigger, user)
+                  SlackUserId(u),
+                  SlackCommand(Command(c), Text(t), ResponseUrl(r), TriggerId(tr), UserId(u))
                 )
                 res <- Accepted(response)
               } yield res
-            case _ => BadRequest(s"Bad data: " + d)
+            case _ => BadRequest(s"Bad data: ${d.values}")
           }
         }
         .handleErrorWith {
