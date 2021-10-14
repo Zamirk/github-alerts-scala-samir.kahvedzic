@@ -46,15 +46,15 @@ object SlackModels {
   final case class SlackMessageBlock1(`type`: String, text: SlackMessageBlock2)
 
   object SlackMessageBlock1 {
-    implicit val smbD: Decoder[SlackMessageBlock1] = deriveDecoder[SlackMessageBlock1]
-    implicit val smbE: Encoder[SlackMessageBlock1] = deriveEncoder[SlackMessageBlock1]
+    implicit val smbD: Decoder[SlackMessageBlock1] = deriveDecoder
+    implicit val smbE: Encoder[SlackMessageBlock1] = deriveEncoder
   }
 
   final case class SlackMessageBlock2(`type`: String, text: String)
 
   object SlackMessageBlock2 {
-    implicit val smb2D: Decoder[SlackMessageBlock2] = deriveDecoder[SlackMessageBlock2]
-    implicit val smb2E: Encoder[SlackMessageBlock2] = deriveEncoder[SlackMessageBlock2]
+    implicit val smb2D: Decoder[SlackMessageBlock2] = deriveDecoder
+    implicit val smb2E: Encoder[SlackMessageBlock2] = deriveEncoder
   }
 
   final case class SlackResponseBody(
@@ -64,8 +64,8 @@ object SlackModels {
   )
 
   object SlackResponseBody {
-    implicit val srbD: Decoder[SlackResponseBody] = deriveDecoder[SlackResponseBody]
-    implicit val srbE: Encoder[SlackResponseBody] = deriveEncoder[SlackResponseBody]
+    implicit val srbD: Decoder[SlackResponseBody] = deriveDecoder
+    implicit val srbE: Encoder[SlackResponseBody] = deriveEncoder
 
     def generateSlackResponse(text: String, msgBlock: List[String]): SlackResponseBody = {
       SlackResponseBody(

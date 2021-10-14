@@ -1,20 +1,20 @@
 package service.route.endpoints
 
 import cats.effect.Async
-import org.http4s.{EntityEncoder, HttpRoutes}
+import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
 import org.typelevel.log4cats.Logger
 import service.algebras.{GithubApiAlg, SubscribeServiceAlg}
 import cats.implicits._
 import service.models.ApiErrors.BadRepositoryException.InvalidRepository
-import service.models.ApiModels.{InsertRepository, SlackUserId, SubscriptionsResponse}
+import service.models.ApiModels.{InsertRepository, SlackUserId}
 import service.models.ApiErrors.SubscriberServiceException.{RepositoryNotFound, UserNameNotFound}
 import org.http4s.circe.CirceEntityDecoder._
 import org.http4s._
-import org.http4s.circe._
 import service.models.SlackModels
 import service.models.SlackModels.SlackCommand.{Command, ResponseUrl, Text, TriggerId, UserId}
-import service.models.SlackModels.{SlackCommand, SlackResponseBody}
+import service.models.SlackModels.{SlackCommand}
+import org.http4s.circe.CirceEntityEncoder._
 
 final case class SubscriberServiceRoute[F[_]](
     service: SubscribeServiceAlg[F],
@@ -23,12 +23,6 @@ final case class SubscriberServiceRoute[F[_]](
 )(implicit
     F: Async[F]
 ) extends Http4sDsl[F] {
-
-  implicit def subscriptionResponseEd: EntityDecoder[F, SubscriptionsResponse] = jsonOf
-  implicit def subscriptionResponseEe: EntityEncoder[F, SubscriptionsResponse] = jsonEncoderOf
-
-  implicit def slackResponseEd: EntityDecoder[F, SlackResponseBody] = jsonOf
-  implicit def slackResponseEe: EntityEncoder[F, SlackResponseBody] = jsonEncoderOf
 
   def routes: HttpRoutes[F] = HttpRoutes.of[F] {
     case GET -> Root / username =>
