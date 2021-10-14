@@ -17,12 +17,20 @@ import service.helpers.DefaultAssertions._
 import io.circe.parser._
 import service.helpers.SampleData
 import service.models.ApiModels.{InsertRepository, SubscriptionsResponse}
+import service.models.SlackModels.{
+  ResponseField,
+  SlackMessageBlock1,
+  SlackMessageBlock2,
+  SlackResponseBody
+}
 
 import scala.concurrent.ExecutionContext
 
 class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
   override implicit def executionContext: ExecutionContext =
     scala.concurrent.ExecutionContext.global
+
+  val malformedJson = Some("{Malformed Json")
 
   private def decodeString: Response[IO] => String = { (r: Response[IO]) =>
     r.body.compile.toVector.unsafeRunSync().map(_.toChar).mkString
@@ -33,6 +41,7 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
       subscribeService: Option[SubscribeServiceAlg[F]] = None,
       githubApi: Option[GithubApiAlg[F]] = None,
       assertion: Response[F] => Assertion
+//      assertions: List[Response[F] => Assertion] = Nil
   ): F[Assertion] = {
     HTTPServer
       .generateRouter[F](
@@ -43,7 +52,7 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
       .orNotFound(
         request
       )
-      .asserting(assertion)
+      .asserting(assertion) //todo fix
   }
 
   def buildRequest[F[_]](
@@ -58,46 +67,46 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
     }
   }
 
-  private def brokenSubscriberService[F[_]: MonadError[*[_], Throwable]]
+  private def brokensubscriptionService[F[_]: MonadError[*[_], Throwable]]
       : Option[SubscribeServiceAlg[F]] =
     Some(SubscribeServiceAlg.stub2[F])
 
   private def brokenGithubService[F[_]: MonadError[*[_], Throwable]]: Option[GithubApiAlg[F]] =
     Some(GithubApiAlg.stub2[F])
 
-  "Calling /subscriber/{xxx}" - {
+  "Calling /subscription/{xxx}" - {
 
     "with a GET request " - {
 
       "should return an OK status code" in {
 
         assertRequest[IO](
-          request = buildRequest("/subscriber/1234"),
-          assertion = okStatus()
+          request = buildRequest("/subscription/1234"),
+          assertion = isOk
         )
       }
 
       "should return an InternalServerError" in {
 
         assertRequest[IO](
-          request = buildRequest("/subscriber/1234"),
-          subscribeService = brokenSubscriberService,
-          assertion = internalServerErrorStatus()
+          request = buildRequest("/subscription/1234"),
+          subscribeService = brokensubscriptionService,
+          assertion = isInternalServerError
         )
       }
 
       "should return an NotFound status code" in {
 
         assertRequest[IO](
-          request = buildRequest("/subscriber/7979"),
-          assertion = notFoundStatus()
+          request = buildRequest("/subscription/7979"),
+          assertion = isNotFound
         )
       }
 
       "should return a valid Json String" in {
 
         assertRequest[IO](
-          request = buildRequest("/subscriber/1234"),
+          request = buildRequest("/subscription/1234"),
           assertion = (r: Response[IO]) =>
             parse(decodeString(r)) match {
               case Left(_)  => assert(false)
@@ -109,7 +118,7 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
       "should return the correct decoded result" in {
 
         assertRequest[IO](
-          request = buildRequest("/subscriber/1234"),
+          request = buildRequest("/subscription/1234"),
           assertion = (r: Response[IO]) =>
             decode[SubscriptionsResponse](decodeString(r)) match {
               case Left(_)     => assert(false)
@@ -126,23 +135,23 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
 
         assertRequest[IO](
           request = buildRequest(
-            path = "/subscriber/8000",
+            path = "/subscription/8000",
             method = PUT,
             body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
           ),
-          assertion = createdStatus()
+          assertion = isCreated
         )
       }
 
       "should return an InternalServerError status code when there is a service level error" in {
         assertRequest[IO](
           request = buildRequest(
-            path = "/subscriber/8000",
+            path = "/subscription/8000",
             method = PUT,
             body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
           ),
           githubApi = brokenGithubService[IO],
-          assertion = internalServerErrorStatus()
+          assertion = isInternalServerError
         )
       }
 
@@ -152,12 +161,12 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
 
           assertRequest[IO](
             request = buildRequest(
-              path = "/subscriber/8000",
+              path = "/subscription/8000",
               method = PUT,
-              body = Some("{Malformed Json")
+              body = malformedJson
             ),
             githubApi = brokenGithubService[IO],
-            assertion = badRequestStatus()
+            assertion = isBadRequest
           )
         }
 
@@ -165,12 +174,12 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
 
           assertRequest[IO](
             request = buildRequest(
-              path = "/subscriber/1234",
+              path = "/subscription/1234",
               method = PUT,
               body =
                 Some(Encoder[InsertRepository].apply(SampleData.nonExistantOrganisation).toString())
             ),
-            assertion = badRequestStatus()
+            assertion = isBadRequest
           )
         }
 
@@ -178,11 +187,11 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
 
           assertRequest[IO](
             request = buildRequest(
-              path = "/subscriber/1234",
+              path = "/subscription/1234",
               method = PUT,
               body = Some(Encoder[InsertRepository].apply(SampleData.dataToInsert2).toString())
             ),
-            assertion = badRequestStatus()
+            assertion = isBadRequest
           )
         }
       }
@@ -194,23 +203,23 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
 
         assertRequest[IO](
           request = buildRequest(
-            path = "/subscriber/1234",
+            path = "/subscription/1234",
             method = DELETE,
             body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
           ),
-          assertion = noContentStatus()
+          assertion = isNoContent
         )
       }
 
       "should return an InternalServerError status code when there is a service level error" in {
         assertRequest[IO](
           request = buildRequest(
-            path = "/subscriber/1234",
+            path = "/subscription/1234",
             method = PUT,
             body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
           ),
           githubApi = brokenGithubService[IO],
-          assertion = internalServerErrorStatus()
+          assertion = isInternalServerError
         )
       }
 
@@ -218,12 +227,12 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
 
         assertRequest[IO](
           request = buildRequest(
-            path = "/subscriber/8000",
+            path = "/subscription/8000",
             method = DELETE,
-            body = Some("{Malformed Json")
+            body = malformedJson
           ),
           githubApi = brokenGithubService[IO],
-          assertion = badRequestStatus()
+          assertion = isBadRequest
         )
 
       }
@@ -234,11 +243,11 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
 
           assertRequest[IO](
             request = buildRequest(
-              path = "/subscriber/121212",
+              path = "/subscription/121212",
               method = DELETE,
               body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
             ),
-            assertion = notFoundStatus()
+            assertion = isNotFound
           )
         }
 
@@ -246,15 +255,80 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
 
           assertRequest[IO](
             request = buildRequest(
-              path = "/subscriber/1234",
+              path = "/subscription/1234",
               method = DELETE,
               body =
                 Some(Encoder[InsertRepository].apply(SampleData.nonExistantOrganisation).toString())
             ),
-            assertion = notFoundStatus()
+            assertion = isNotFound
           )
         }
       }
+    }
+
+  }
+
+  "Calling /subscription/slack/command with a POST request " - {
+
+    "should return a NoContent status code" in {
+
+      assertRequest[IO](
+        request = Request[IO](
+          method = Method.POST,
+          uri = Uri.fromString("/subscription/slack/command").getOrElse(uri"/")
+        ).withEntity(SampleData.validUrlEncodedData),
+        assertion = isAccepted
+      )
+    }
+
+    "should return an InternalServerError status code when there is a service level error" in {
+      assertRequest[IO](
+        request = Request[IO](
+          method = Method.POST,
+          uri = Uri.fromString("/subscription/slack/command").getOrElse(uri"/")
+        ).withEntity(SampleData.validUrlEncodedData),
+        subscribeService = brokensubscriptionService[IO],
+        assertion = isInternalServerError
+      )
+    }
+
+    "should return an BadRequest status code when the data sent is invalid" in {
+      assertRequest[IO](
+        request = Request[IO](
+          method = Method.POST,
+          uri = Uri.fromString("/subscription/slack/command").getOrElse(uri"/")
+        ).withEntity(SampleData.invalidUrlEncodedData),
+        assertion = isBadRequest
+      )
+    }
+
+    "should return a valid json response" in {
+      assertRequest[IO](
+        request = Request[IO](
+          method = Method.POST,
+          uri = Uri.fromString("/subscription/slack/command").getOrElse(uri"/")
+        ).withEntity(SampleData.validUrlEncodedData),
+        assertion = (r: Response[IO]) =>
+          decode[SlackResponseBody](decodeString(r)) match {
+            case Left(_) => assert(false)
+            case Right(data) =>
+              assert(
+                data === SlackResponseBody(
+                  ResponseField.In_channel,
+                  "It's 80 degrees right now.",
+                  List("*It's 80 degrees right now.*", "Partly cloudy today and tomorrow").map(m =>
+                    SlackMessageBlock1(
+                      "section",
+                      SlackMessageBlock2(
+                        "mrkdwn",
+                        m
+                      )
+                    )
+                  )
+                )
+              )
+          }
+      )
     }
 
   }

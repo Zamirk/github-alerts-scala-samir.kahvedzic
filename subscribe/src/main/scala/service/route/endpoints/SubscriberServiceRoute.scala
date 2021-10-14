@@ -12,6 +12,8 @@ import service.models.ApiErrors.SubscriberServiceException.{RepositoryNotFound, 
 import org.http4s.circe.CirceEntityDecoder._
 import org.http4s._
 import org.http4s.circe._
+import service.models.SlackModels
+import service.models.SlackModels.{SlackCommand, SlackResponseBody}
 
 final case class SubscriberServiceRoute[F[_]](
     service: SubscribeServiceAlg[F],
@@ -23,6 +25,9 @@ final case class SubscriberServiceRoute[F[_]](
 
   implicit def subscriptionResponseEd: EntityDecoder[F, SubscriptionsResponse] = jsonOf
   implicit def subscriptionResponseEe: EntityEncoder[F, SubscriptionsResponse] = jsonEncoderOf
+
+  implicit def slackResponseEd: EntityDecoder[F, SlackResponseBody] = jsonOf
+  implicit def slackResponseEe: EntityEncoder[F, SlackResponseBody] = jsonEncoderOf
 
   def routes: HttpRoutes[F] = HttpRoutes.of[F] {
     case GET -> Root / username =>
@@ -57,12 +62,33 @@ final case class SubscriberServiceRoute[F[_]](
       ).handleErrorWith {
         userNameNotFound.orElse(repoNotFound).orElse(internalServerError)
       }
+
+    case req @ POST -> Root / "slack" / "command" =>
+      req
+        .decode[UrlForm] { d =>
+          SlackModels.formData
+            .traverse(d.values.get(_).flatMap(_.uncons))
+            .map(_._1F) match {
+            case Some(List(command, text, responseUrl, trigger, user)) =>
+              for {
+                response <- service.postSlackCommand(
+                  SlackUserId(user),
+                  SlackCommand(command, text, responseUrl, trigger, user)
+                )
+                res <- Accepted(response)
+              } yield res
+            case _ => BadRequest(s"Bad data: " + d)
+          }
+        }
+        .handleErrorWith {
+          internalServerError
+        }
   }
 
   private def processInput(
       req: Request[F],
       resultProcess: InsertRepository => F[Response[F]]
-  ): F[Response[F]] = {
+  ): F[Response[F]] =
     req
       .attemptAs[InsertRepository]
       .value
@@ -70,23 +96,23 @@ final case class SubscriberServiceRoute[F[_]](
         case Left(_)            => BadRequest()
         case Right(decodedData) => resultProcess(decodedData)
       }
+
+  type ThrowToResponseF = PartialFunction[Throwable, F[Response[F]]]
+
+  val userNameNotFound: ThrowToResponseF = { case UserNameNotFound(u) =>
+    NotFound(s"Not found username $u")
   }
 
-  val userNameNotFound: PartialFunction[Throwable, F[Response[F]]] = {
-    case UserNameNotFound(userName) =>
-      NotFound(s"Not found username $userName")
+  val repoNotFound: ThrowToResponseF = { case RepositoryNotFound(r) =>
+    NotFound(s"Repository not found in subscription ${r.subscription.repository}")
   }
 
-  val internalServerError: PartialFunction[Throwable, F[Response[F]]] = { case _ =>
-    InternalServerError()
-  }
-
-  val repoNotFound: PartialFunction[Throwable, F[Response[F]]] = { case RepositoryNotFound(repo) =>
-    NotFound(s"Repository not found in subscription ${repo.subscription.repository}")
-  }
-
-  val githubValidation: PartialFunction[Throwable, F[Response[F]]] = { case InvalidRepository(_) =>
+  val githubValidation: ThrowToResponseF = { case InvalidRepository(_) =>
     BadRequest()
+  }
+
+  val internalServerError: ThrowToResponseF = { case _ =>
+    InternalServerError()
   }
 
 }

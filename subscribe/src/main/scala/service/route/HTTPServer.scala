@@ -10,7 +10,6 @@ import org.typelevel.log4cats.{Logger, SelfAwareStructuredLogger}
 import service.algebras.{GithubApiAlg, SubscribeServiceAlg}
 import service.models.ConfigModels.Config
 import service.route.endpoints.SubscriberServiceRoute
-
 import scala.concurrent.ExecutionContext.global
 
 object HTTPServer {
@@ -35,8 +34,8 @@ object HTTPServer {
       logger: Logger[F]
   ): HttpRoutes[F] =
     Router(
-      "/health"     -> HealthCheck[F](logger).routes,
-      "/subscriber" -> SubscriberServiceRoute[F](service, githubApi, logger).routes
+      "/health"       -> HealthCheck[F](logger).routes,
+      "/subscription" -> SubscriberServiceRoute[F](service, githubApi, logger).routes
     )
 
   case class HealthCheck[F[_]](

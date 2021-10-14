@@ -13,6 +13,7 @@ Api Routes
 - GET /subscription/<user>
 - DELETE /subscription/<user>
 - PUT /subscription/<user>
+- POST /subscription/slack/command
 
 ``` Example request
 Method: GET
@@ -54,6 +55,30 @@ Body: {
     "organization" : "47deg",
     "repository" : "thool"
   }
+}
+```
+
+``` Example request
+Method: post
+Body: {
+  "response_type":"in_channel",
+  "text":"It's 80 degrees right now.",
+  "blocks":[
+    {
+      "type":"section",
+      "text":{
+        "type":"mrkdwn",
+        "text":"*It's 80 degrees right now.*"
+      }
+    },
+    {
+      "type":"section",
+      "text":{
+        "type":"mrkdwn",
+        "text":"Partly cloudy today and tomorrow"
+      }
+    }
+  ]
 }
 ```
 
