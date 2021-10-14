@@ -112,5 +112,4 @@ final case class SubscriberServiceRoute[F[_]](
   val internalServerError: ThrowToResponseF = { case _ =>
     InternalServerError()
   }
-
 }
