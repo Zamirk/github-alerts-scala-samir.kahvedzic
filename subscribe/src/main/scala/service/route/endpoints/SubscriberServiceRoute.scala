@@ -66,9 +66,7 @@ final case class SubscriberServiceRoute[F[_]](
     case req @ POST -> Root / "slack" / "command" =>
       req
         .decode[UrlForm] { d =>
-          SlackModels.formData
-            .traverse(d.values.get(_).flatMap(_.uncons))
-            .map(_._1F) match {
+          SlackModels.formData.traverse(d.values.get(_).flatMap(_.headOption)) match {
             case Some(List(command, text, responseUrl, trigger, user)) =>
               for {
                 response <- service.postSlackCommand(
