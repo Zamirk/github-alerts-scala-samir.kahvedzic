@@ -41,7 +41,6 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
       subscribeService: Option[SubscribeServiceAlg[F]] = None,
       githubApi: Option[GithubApiAlg[F]] = None,
       assertion: Response[F] => Assertion
-//      assertions: List[Response[F] => Assertion] = Nil
   ): F[Assertion] = {
     HTTPServer
       .generateRouter[F](
@@ -52,7 +51,7 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
       .orNotFound(
         request
       )
-      .asserting(assertion) //todo fix
+      .asserting(assertion)
   }
 
   def buildRequest[F[_]](
