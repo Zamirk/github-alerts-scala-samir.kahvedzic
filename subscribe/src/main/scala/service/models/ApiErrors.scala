@@ -17,7 +17,7 @@ object ApiErrors {
   object SubscriberServiceException {
     final case class UserNameNotFound(userName: String)         extends SubscriberServiceException
     final case class RepositoryNotFound(repo: InsertRepository) extends SubscriberServiceException
-
+    final case class UnexpectedError()                          extends SubscriberServiceException
   }
 
 }

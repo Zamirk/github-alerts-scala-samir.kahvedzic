@@ -7,21 +7,23 @@ import org.http4s.dsl.io._
 
 object DefaultAssertions {
 
-  def okStatus[F[_]](): Response[F] => Assertion = (r: Response[F]) => r.status shouldBe Ok
+  type ResponseToAssertion[F[_]] = Response[F] => Assertion
 
-  def notFoundStatus[F[_]](): Response[F] => Assertion = (r: Response[F]) =>
-    r.status shouldBe NotFound
+  private def assertStatus[F[_], A](status: A): ResponseToAssertion[F] = (r: Response[F]) =>
+    r.status shouldBe status
 
-  def createdStatus[F[_]](): Response[F] => Assertion = (r: Response[F]) =>
-    r.status shouldBe Created
+  def isOk[F[_]]: ResponseToAssertion[F] = assertStatus(Ok)
 
-  def noContentStatus[F[_]](): Response[F] => Assertion = (r: Response[F]) =>
-    r.status shouldBe NoContent
+  def isNotFound[F[_]]: ResponseToAssertion[F] = assertStatus(NotFound)
 
-  def badRequestStatus[F[_]](): Response[F] => Assertion = (r: Response[F]) =>
-    r.status shouldBe BadRequest
+  def isCreated[F[_]]: ResponseToAssertion[F] = assertStatus(Created)
 
-  def internalServerErrorStatus[F[_]](): Response[F] => Assertion = (r: Response[F]) =>
-    r.status shouldBe InternalServerError
+  def isAccepted[F[_]]: ResponseToAssertion[F] = assertStatus(Accepted)
+
+  def isNoContent[F[_]]: ResponseToAssertion[F] = assertStatus(NoContent)
+
+  def isBadRequest[F[_]]: ResponseToAssertion[F] = assertStatus(BadRequest)
+
+  def isInternalServerError[F[_]]: ResponseToAssertion[F] = assertStatus(InternalServerError)
 
 }
