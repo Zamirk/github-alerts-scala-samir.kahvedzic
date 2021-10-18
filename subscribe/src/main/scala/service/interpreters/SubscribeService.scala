@@ -1,15 +1,64 @@
 package service.interpreters
-
 import cats.MonadThrow
 import service.algebras.SubscribeServiceAlg
-import service.models.ApiErrors.SubscriberServiceException.{
+import service.domain.ApiErrors.SubscriberServiceException.{
   RepositoryNotFound,
   UnexpectedError,
   UserNameNotFound
 }
-import service.models.ApiModels.{InsertRepository, SlackUserId, Subscription, SubscriptionsResponse}
-import service.models.SlackModels.{SlackCommand, SlackResponseBody}
-object SubscribeServiceAlg {
+import service.domain.ApiModels.{InsertRepository, SlackUserId, Subscription, SubscriptionsResponse}
+import service.domain.SlackModels.{SlackCommand, SlackResponseBody}
+
+object SubscribeService {
+
+  def make[F[_]](
+  ): SubscribeServiceAlg[F] = new SubscribeServiceAlg[F] {
+    override def getSubscriptions(s: SlackUserId): F[SubscriptionsResponse] =
+      ???
+
+    override def insertSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] = ???
+
+    override def deleteSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] = ???
+
+    override def postSlackCommand(s: SlackUserId, sub: SlackCommand): F[SlackResponseBody] = ???
+  }
+
+  def stub[F[_]: MonadThrow]: SubscribeServiceAlg[F] = new SubscribeServiceAlg[F] {
+    override def getSubscriptions(s: SlackUserId): F[SubscriptionsResponse] =
+      SubscribeService.mockDatabase.get(s.s) match {
+        case Some(res) =>
+          MonadThrow[F].pure(res)
+        case None =>
+          MonadThrow[F].raiseError(UserNameNotFound(s.s))
+      }
+
+    override def insertSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] =
+      MonadThrow[F].unit
+
+    //TODO Implementation in future PR
+    override def postSlackCommand(s: SlackUserId, sub: SlackCommand): F[SlackResponseBody] =
+      MonadThrow[F].pure(
+        SlackResponseBody.generateSlackResponse(
+          "It's 80 degrees right now.",
+          List(
+            "*It's 80 degrees right now.*",
+            "Partly cloudy today and tomorrow"
+          )
+        )
+      )
+
+    override def deleteSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] =
+      SubscribeService.mockDatabase.get(s.s) match {
+        case Some(subs) if {
+              subs.subscriptions.exists(a =>
+                a.repository == sub.subscription.repository && a.organization == sub.subscription.organization
+              )
+            } =>
+          MonadThrow[F].unit
+        case Some(_) => MonadThrow[F].raiseError(RepositoryNotFound(sub))
+        case None    => MonadThrow[F].raiseError(UserNameNotFound(s.s))
+      }
+  }
 
   def stub2[F[_]: MonadThrow]: SubscribeServiceAlg[F] = {
     new SubscribeServiceAlg[F] {
@@ -26,54 +75,6 @@ object SubscribeServiceAlg {
         MonadThrow[F].raiseError(UnexpectedError())
 
     }
-  }
-
-  def make[F[_]]: SubscribeServiceAlg[F] = new SubscribeServiceAlg[F] {
-    override def getSubscriptions(s: SlackUserId): F[SubscriptionsResponse] =
-      ???
-
-    override def insertSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] = ???
-
-    override def deleteSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] = ???
-
-    //TODO #1f3erv0 Required functionality is to be implemented in a future ticket
-    override def postSlackCommand(s: SlackUserId, sub: SlackCommand): F[SlackResponseBody] = ???
-  }
-
-  def stub[F[_]: MonadThrow]: SubscribeServiceAlg[F] = new SubscribeServiceAlg[F] {
-    override def getSubscriptions(s: SlackUserId): F[SubscriptionsResponse] =
-      SubscribeServiceAlg.mockDatabase.get(s.s) match {
-        case Some(res) =>
-          MonadThrow[F].pure(res)
-        case None =>
-          MonadThrow[F].raiseError(UserNameNotFound(s.s))
-      }
-
-    override def insertSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] =
-      MonadThrow[F].unit
-
-    override def postSlackCommand(s: SlackUserId, sub: SlackCommand): F[SlackResponseBody] =
-      MonadThrow[F].pure(
-        SlackResponseBody.generateSlackResponse(
-          "It's 80 degrees right now.",
-          List(
-            "*It's 80 degrees right now.*",
-            "Partly cloudy today and tomorrow"
-          )
-        )
-      )
-
-    override def deleteSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] =
-      SubscribeServiceAlg.mockDatabase.get(s.s) match {
-        case Some(subs) if {
-              subs.subscriptions.exists(a =>
-                a.repository == sub.subscription.repository && a.organization == sub.subscription.organization
-              )
-            } =>
-          MonadThrow[F].unit
-        case Some(_) => MonadThrow[F].raiseError(RepositoryNotFound(sub))
-        case None    => MonadThrow[F].raiseError(UserNameNotFound(s.s))
-      }
   }
 
   var mockDatabase = Map(

@@ -1,10 +1,10 @@
-package service.models
+package service.domain
 
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import service.models.SlackModels.ResponseField.InChannel
-import service.models.SlackModels.SlackCommand.{Command, Text}
-import service.models.SlackModels.SlackCommand._
+import service.domain.SlackModels.ResponseField.InChannel
+import service.domain.SlackModels.SlackCommand.{Command, Text}
+import service.domain.SlackModels.SlackCommand._
 object SlackModels {
 
   lazy val formData: List[String] = List("command", "text", "response_url", "trigger_id", "user_id")

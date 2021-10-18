@@ -17,37 +17,51 @@ object Dependencies {
     lazy val ScalaTestVersion = "3.2.10"
     lazy val ScalaMockVersion = "4.4.0"
 
-    lazy val libs: Seq[ModuleID] = {
-      Seq(
-        "org.http4s"    %% "http4s-blaze-server" % Version.Http4sVersion,
-        "org.http4s"    %% "http4s-blaze-client" % Version.Http4sVersion,
-        "org.http4s"    %% "http4s-circe"        % Version.Http4sVersion,
-        "io.circe"      %% "circe-generic"       % Version.CirceVersion,
-        "io.circe"      %% "circe-parser"        % Version.CirceVersion,
-        "io.circe"      %% "circe-core"          % Version.CirceVersion,
-        "org.http4s"    %% "http4s-dsl"          % Version.Http4sVersion,
-        "ch.qos.logback" % "logback-classic"     % Version.LogbackVersion,
-        "org.scalameta" %% "svm-subs"            % "20.2.0"
-      ) ++ log4cats ++ pureConfug ++ testing
-    }
-
-    lazy val testing: Seq[ModuleID] = List(
-      "org.scalatest" %% "scalatest"                     % Version.ScalaTestVersion % "it,test",
-      "org.scalamock" %% "scalamock"                     % Version.ScalaMockVersion % "it,test",
-      "org.typelevel" %% "cats-effect-testing-scalatest" % Version.catsEffectTesting,
-      "org.typelevel" %% "cats-effect-testkit"           % Version.catsEffect
-    )
-
-    lazy val pureConfug: Seq[ModuleID] = List(
-      "com.github.pureconfig" %% "pureconfig"             % Version.pureconfig,
-      "com.github.pureconfig" %% "pureconfig-cats-effect" % Version.pureconfig
-    )
-
-    lazy val log4cats: Seq[ModuleID] = List(
-      "org.typelevel" %% "log4cats-noop"   % Version.log4Cats,
-      "org.typelevel" %% "log4cats-core"   % Version.log4Cats,
-      "org.typelevel" %% "log4cats-slf4j"  % Version.log4Cats,
-      "ch.qos.logback" % "logback-classic" % Version.classicLogger
-    )
+    lazy val FlywayVersion = "7.5.2"
+    lazy val doobie        = "1.0.0-RC1"
   }
+
+  lazy val libs: Seq[ModuleID] = {
+    Seq(
+      "org.http4s"    %% "http4s-blaze-server" % Version.Http4sVersion,
+      "org.http4s"    %% "http4s-blaze-client" % Version.Http4sVersion,
+      "org.http4s"    %% "http4s-circe"        % Version.Http4sVersion,
+      "io.circe"      %% "circe-generic"       % Version.CirceVersion,
+      "io.circe"      %% "circe-parser"        % Version.CirceVersion,
+      "io.circe"      %% "circe-core"          % Version.CirceVersion,
+      "org.http4s"    %% "http4s-dsl"          % Version.Http4sVersion,
+      "ch.qos.logback" % "logback-classic"     % Version.LogbackVersion,
+      "org.scalameta" %% "svm-subs"            % "20.2.0"
+    ) ++ log4cats ++ pureConfug ++ testing ++ flyway ++ doobie
+  }
+
+  lazy val testing: Seq[ModuleID] = List(
+    "org.scalatest" %% "scalatest"                     % Version.ScalaTestVersion % "it,test",
+    "org.scalamock" %% "scalamock"                     % Version.ScalaMockVersion % "it,test",
+    "org.typelevel" %% "cats-effect-testing-scalatest" % Version.catsEffectTesting,
+    "org.typelevel" %% "cats-effect-testkit"           % Version.catsEffect
+  )
+
+  lazy val doobie: Seq[ModuleID] = List(
+    "org.tpolecat" %% "doobie-core"     % Version.doobie,
+    "org.tpolecat" %% "doobie-h2"       % Version.doobie, // H2 driver 1.4.200 + type mappings.
+    "org.tpolecat" %% "doobie-hikari"   % Version.doobie, // HikariCP transactor.
+    "org.tpolecat" %% "doobie-postgres" % Version.doobie // Postgres driver 42.2.19 + type mappings
+  )
+
+  lazy val pureConfug: Seq[ModuleID] = List(
+    "com.github.pureconfig" %% "pureconfig"             % Version.pureconfig,
+    "com.github.pureconfig" %% "pureconfig-cats-effect" % Version.pureconfig
+  )
+
+  lazy val log4cats: Seq[ModuleID] = List(
+    "org.typelevel" %% "log4cats-noop"   % Version.log4Cats,
+    "org.typelevel" %% "log4cats-core"   % Version.log4Cats,
+    "org.typelevel" %% "log4cats-slf4j"  % Version.log4Cats,
+    "ch.qos.logback" % "logback-classic" % Version.classicLogger
+  )
+
+  lazy val flyway: Seq[ModuleID] = List(
+    "org.flywaydb" % "flyway-core" % Version.FlywayVersion
+  )
 }

@@ -1,7 +1,7 @@
-package service.helpers
+package service.route.helpers
 
 import org.http4s.UrlForm
-import service.models.ApiModels.{InsertRepository, Repository, Subscription, SubscriptionsResponse}
+import service.domain.ApiModels.{InsertRepository, Repository, Subscription, SubscriptionsResponse}
 
 object SampleData {
 

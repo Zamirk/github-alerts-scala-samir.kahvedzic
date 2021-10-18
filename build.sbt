@@ -1,4 +1,4 @@
-import Dependencies.Version.libs
+import Dependencies.libs
 
 addCommandAlias("ci-test", "scalafmtCheckAll; scalafmtSbtCheck; test")
 

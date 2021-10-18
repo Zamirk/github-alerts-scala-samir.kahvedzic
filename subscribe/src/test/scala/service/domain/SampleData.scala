@@ -1,4 +1,4 @@
-package service.models
+package service.domain
 
 object DomainSamples {
 

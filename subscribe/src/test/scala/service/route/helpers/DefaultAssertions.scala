@@ -1,4 +1,4 @@
-package service.helpers
+package service.route.helpers
 
 import org.http4s.Response
 import org.scalatest.compatible.Assertion

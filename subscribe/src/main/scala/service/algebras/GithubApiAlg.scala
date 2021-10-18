@@ -1,5 +1,5 @@
 package service.algebras
 
 trait GithubApiAlg[F[_]] {
-  def validateRepo(repo: service.models.ApiModels.InsertRepository): F[Unit]
+  def validateRepo(repo: service.domain.ApiModels.InsertRepository): F[Unit]
 }
