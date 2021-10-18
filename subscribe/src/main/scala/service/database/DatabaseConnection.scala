@@ -1,6 +1,7 @@
 package service.database
 
 import service.domain.ConfigModels._
+import cats.syntax.all._
 import cats.effect.Resource
 import cats.effect.kernel.Async
 import org.typelevel.log4cats.SelfAwareStructuredLogger
@@ -31,7 +32,7 @@ object DatabaseConnection {
       transactor.configure { dataSource =>
         Async[F].delay {
           Flyway.configure().dataSource(dataSource).load().migrate()
-        }
+        } *> Async[F].unit
       }
     )
   }
