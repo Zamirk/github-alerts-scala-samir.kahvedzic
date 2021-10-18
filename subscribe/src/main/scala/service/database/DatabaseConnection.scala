@@ -4,8 +4,6 @@ import service.domain.ConfigModels._
 import cats.effect.Resource
 import cats.effect.kernel.Async
 import org.typelevel.log4cats.SelfAwareStructuredLogger
-//import doobie.ExecutionContexts
-//import doobie.hikari.HikariTransactor
 import org.flywaydb.core.Flyway
 import doobie.ExecutionContexts
 import doobie.hikari.HikariTransactor
@@ -21,20 +19,18 @@ object DatabaseConnection {
       db <- HikariTransactor.newHikariTransactor[F](
         loadedConfig.database.driver,
         loadedConfig.database.url,
-        "postgres",
+        loadedConfig.database.databaseUser,
         loadedConfig.database.password,
         ec
       )
     } yield db
   }
 
-  //Creates the table in db.migration if it does not exist
   def createDatabaseTables[F[_]: Async](transactor: HikariTransactor[F]): Resource[F, Unit] = {
     Resource.liftK(
       transactor.configure { dataSource =>
-        Async[F].pure {
+        Async[F].delay {
           Flyway.configure().dataSource(dataSource).load().migrate()
-          ()
         }
       }
     )
