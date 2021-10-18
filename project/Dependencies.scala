@@ -3,9 +3,9 @@ import sbt._
 object Dependencies {
 
   object Version {
-    lazy val Http4sVersion  = "0.23.4"
-    lazy val CirceVersion   = "0.14.1"
-    lazy val LogbackVersion = "1.2.6"
+    lazy val http4sVersion = "0.23.4"
+    lazy val circe         = "0.14.1"
+    lazy val logback       = "1.2.6"
 
     lazy val catsEffect        = "3.1.0"
     lazy val catsEffectTesting = "1.1.0"
@@ -14,30 +14,30 @@ object Dependencies {
     lazy val pureconfig    = "0.15.0"
     lazy val log4Cats      = "2.1.0"
 
-    lazy val ScalaTestVersion = "3.2.10"
-    lazy val ScalaMockVersion = "4.4.0"
+    lazy val scalaTest = "3.2.10"
+    lazy val scalaMock = "4.4.0"
 
-    lazy val FlywayVersion = "7.5.2"
-    lazy val doobie        = "1.0.0-RC1"
+    lazy val flyway = "7.5.2"
+    lazy val doobie = "1.0.0-RC1"
   }
 
   lazy val libs: Seq[ModuleID] = {
     Seq(
-      "org.http4s"    %% "http4s-blaze-server" % Version.Http4sVersion,
-      "org.http4s"    %% "http4s-blaze-client" % Version.Http4sVersion,
-      "org.http4s"    %% "http4s-circe"        % Version.Http4sVersion,
-      "io.circe"      %% "circe-generic"       % Version.CirceVersion,
-      "io.circe"      %% "circe-parser"        % Version.CirceVersion,
-      "io.circe"      %% "circe-core"          % Version.CirceVersion,
-      "org.http4s"    %% "http4s-dsl"          % Version.Http4sVersion,
-      "ch.qos.logback" % "logback-classic"     % Version.LogbackVersion,
+      "org.http4s"    %% "http4s-blaze-server" % Version.http4sVersion,
+      "org.http4s"    %% "http4s-blaze-client" % Version.http4sVersion,
+      "org.http4s"    %% "http4s-circe"        % Version.http4sVersion,
+      "io.circe"      %% "circe-generic"       % Version.circe,
+      "io.circe"      %% "circe-parser"        % Version.circe,
+      "io.circe"      %% "circe-core"          % Version.circe,
+      "org.http4s"    %% "http4s-dsl"          % Version.http4sVersion,
+      "ch.qos.logback" % "logback-classic"     % Version.logback,
       "org.scalameta" %% "svm-subs"            % "20.2.0"
     ) ++ log4cats ++ pureConfug ++ testing ++ flyway ++ doobie
   }
 
   lazy val testing: Seq[ModuleID] = List(
-    "org.scalatest" %% "scalatest"                     % Version.ScalaTestVersion % "it,test",
-    "org.scalamock" %% "scalamock"                     % Version.ScalaMockVersion % "it,test",
+    "org.scalatest" %% "scalatest"                     % Version.scalaTest % "it,test",
+    "org.scalamock" %% "scalamock"                     % Version.scalaMock % "it,test",
     "org.typelevel" %% "cats-effect-testing-scalatest" % Version.catsEffectTesting,
     "org.typelevel" %% "cats-effect-testkit"           % Version.catsEffect
   )
@@ -62,6 +62,6 @@ object Dependencies {
   )
 
   lazy val flyway: Seq[ModuleID] = List(
-    "org.flywaydb" % "flyway-core" % Version.FlywayVersion
+    "org.flywaydb" % "flyway-core" % Version.flyway
   )
 }
