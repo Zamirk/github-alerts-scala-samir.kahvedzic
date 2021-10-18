@@ -1,4 +1,4 @@
-package service.models
+package service.domain
 
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
@@ -14,6 +14,7 @@ object ApiModels {
     implicit val se: Encoder[SubscriptionsResponse] = deriveEncoder[SubscriptionsResponse]
   }
 
+  //TODO Refactor subscribedAt to use Java.time and replace org / repo with value class
   final case class Subscription(organization: String, repository: String, subscribedAt: String)
 
   object Subscription {

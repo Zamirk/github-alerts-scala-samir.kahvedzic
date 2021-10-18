@@ -1,6 +1,6 @@
-package service.models
+package service.domain
 
-import service.models.ApiModels.{InsertRepository}
+import service.domain.ApiModels.{InsertRepository}
 
 import scala.util.control.NoStackTrace
 

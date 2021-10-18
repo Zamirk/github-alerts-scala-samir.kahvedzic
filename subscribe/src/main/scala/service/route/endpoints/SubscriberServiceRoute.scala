@@ -6,14 +6,14 @@ import org.http4s.dsl.Http4sDsl
 import org.typelevel.log4cats.Logger
 import service.algebras.{GithubApiAlg, SubscribeServiceAlg}
 import cats.implicits._
-import service.models.ApiErrors.BadRepositoryException.InvalidRepository
-import service.models.ApiModels.{InsertRepository, SlackUserId}
-import service.models.ApiErrors.SubscriberServiceException.{RepositoryNotFound, UserNameNotFound}
+import service.domain.ApiErrors.BadRepositoryException.InvalidRepository
+import service.domain.ApiModels.{InsertRepository, SlackUserId}
+import service.domain.ApiErrors.SubscriberServiceException.{RepositoryNotFound, UserNameNotFound}
 import org.http4s.circe.CirceEntityDecoder._
 import org.http4s._
-import service.models.SlackModels
-import service.models.SlackModels.SlackCommand.{Command, ResponseUrl, Text, TriggerId, UserId}
-import service.models.SlackModels.{SlackCommand}
+import service.domain.SlackModels
+import service.domain.SlackModels.SlackCommand.{Command, ResponseUrl, Text, TriggerId, UserId}
+import service.domain.SlackModels.{SlackCommand}
 import org.http4s.circe.CirceEntityEncoder._
 
 final case class SubscriberServiceRoute[F[_]](

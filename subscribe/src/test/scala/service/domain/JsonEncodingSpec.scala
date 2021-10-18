@@ -1,10 +1,10 @@
-package service.models
+package service.domain
 
 import io.circe.Encoder
 import org.scalatest.Assertion
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
-import service.models.SlackModels.{
+import service.domain.SlackModels.{
   ResponseField,
   SlackMessageBlock1,
   SlackMessageBlock2,

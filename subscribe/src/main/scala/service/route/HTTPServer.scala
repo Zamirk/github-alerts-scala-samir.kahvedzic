@@ -8,14 +8,14 @@ import org.http4s.server.{Router, Server}
 import org.http4s.HttpRoutes
 import org.typelevel.log4cats.{Logger, SelfAwareStructuredLogger}
 import service.algebras.{GithubApiAlg, SubscribeServiceAlg}
-import service.models.ConfigModels.Config
+import service.domain.ConfigModels.ServerConfig
 import service.route.endpoints.SubscriberServiceRoute
 import scala.concurrent.ExecutionContext.global
 
 object HTTPServer {
 
   def createBlazeServer[F[_]: Async](
-      config: Config,
+      config: ServerConfig,
       service: SubscribeServiceAlg[F],
       logger: SelfAwareStructuredLogger[F],
       githubApi: GithubApiAlg[F]

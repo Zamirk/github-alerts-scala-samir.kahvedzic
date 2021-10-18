@@ -1,7 +1,7 @@
 package service.algebras
 
-import service.models.ApiModels.{InsertRepository, SlackUserId, SubscriptionsResponse}
-import service.models.SlackModels.{SlackCommand, SlackResponseBody}
+import service.domain.ApiModels.{InsertRepository, SlackUserId, SubscriptionsResponse}
+import service.domain.SlackModels.{SlackCommand, SlackResponseBody}
 
 trait SubscribeServiceAlg[F[_]] {
 

@@ -1,32 +1,31 @@
-package service
+package service.route
 
-import cats.{MonadThrow}
-import cats.effect.{Async, IO}
+import cats.MonadThrow
 import cats.effect.testing.scalatest.AsyncIOSpec
+import cats.effect.{Async, IO}
 import io.circe.Encoder
-import org.http4s.{Method, Request, Response, Uri}
+import io.circe.parser._
 import org.http4s.dsl.io._
 import org.http4s.implicits._
+import org.http4s.{Method, Request, Response, Uri}
 import org.scalatest.compatible.Assertion
 import org.scalatest.freespec.AsyncFreeSpec
 import org.typelevel.log4cats.noop.NoOpLogger
 import service.algebras.{GithubApiAlg, SubscribeServiceAlg}
-import service.interpreters.{GithubApiAlg, SubscribeServiceAlg}
-import service.route.HTTPServer
-import service.helpers.DefaultAssertions._
-import io.circe.parser._
-import service.helpers.SampleData
-import service.models.ApiModels.{InsertRepository, SubscriptionsResponse}
-import service.models.SlackModels.{
+import service.domain.ApiModels.{InsertRepository, SubscriptionsResponse}
+import service.domain.SlackModels.{
   ResponseField,
   SlackMessageBlock1,
   SlackMessageBlock2,
   SlackResponseBody
 }
+import service.route.helpers.DefaultAssertions._
+import service.route.helpers.SampleData
+import service.interpreters.{GithubApi, SubscribeService}
 
 import scala.concurrent.ExecutionContext
 
-class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
+class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
   override implicit def executionContext: ExecutionContext =
     scala.concurrent.ExecutionContext.global
 
@@ -44,8 +43,8 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
   ): F[Assertion] = {
     HTTPServer
       .generateRouter[F](
-        subscribeService.getOrElse(SubscribeServiceAlg.stub[F]),
-        githubApi.getOrElse(GithubApiAlg.stub[F]),
+        subscribeService.getOrElse(SubscribeService.stub[F]),
+        githubApi.getOrElse(GithubApi.stub[F]),
         NoOpLogger[F]
       )
       .orNotFound(
@@ -67,10 +66,10 @@ class SubscriberServiceRouteSpec extends AsyncFreeSpec with AsyncIOSpec {
   }
 
   private def brokensubscriptionService[F[_]: MonadThrow]: Option[SubscribeServiceAlg[F]] =
-    Some(SubscribeServiceAlg.stub2[F])
+    Some(SubscribeService.stub2[F])
 
   private def brokenGithubService[F[_]: MonadThrow]: Option[GithubApiAlg[F]] =
-    Some(GithubApiAlg.stub2[F])
+    Some(GithubApi.stub2[F])
 
   "Calling /subscription/{xxx}" - {
 
