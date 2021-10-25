@@ -94,8 +94,8 @@ class SubscribeServiceImpSpec
 
     (for {
       _ <- s.insertSubscription(
-        SlackUserId(UUID.randomUUID()),
-        "Samir_Kah",
+        userId,
+        "Samir_Kah2",
         "/random",
         RepoCarrier(
           Repository(

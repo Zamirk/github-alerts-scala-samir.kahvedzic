@@ -4,9 +4,7 @@ import cats.effect.IO
 import doobie.Transactor
 import doobie.implicits._
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
-import org.scalatest.matchers.must.Matchers.not
 import doobie.scalatest.{AnalysisMatchers, IOChecker}
-import doobie.util.transactor.Transactor.Aux
 import org.scalatest.freespec.AnyFreeSpec
 import service.database.connection.DBConnection.db
 import service.database.queries.SubscribeServiceQueries
