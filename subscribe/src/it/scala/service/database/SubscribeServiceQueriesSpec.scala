@@ -4,7 +4,9 @@ import cats.effect.IO
 import doobie.Transactor
 import doobie.implicits._
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
+import org.scalatest.matchers.must.Matchers.not
 import doobie.scalatest.{AnalysisMatchers, IOChecker}
+import doobie.util.transactor.Transactor.Aux
 import org.scalatest.freespec.AnyFreeSpec
 import service.database.connection.DBConnection.db
 import service.database.queries.SubscribeServiceQueries
@@ -18,7 +20,7 @@ class SubscribeServiceQueriesSpec extends AnyFreeSpec with AnalysisMatchers[IO] 
 
   val id: SlackUserId = SlackUserId(UUID.randomUUID())
   val id2: RepoId     = RepoId(UUID.randomUUID())
-
+  /*
   "Subscription insert query should pass type-check" in {
     SubscribeServiceQueries.subscriptionsInsertionQuery must typecheck
   }
@@ -41,6 +43,6 @@ class SubscribeServiceQueriesSpec extends AnyFreeSpec with AnalysisMatchers[IO] 
 
   "DeleteSubscription query should pass type-check" in {
     SubscribeServiceQueries.deleteSubscription(id, id2) must typecheck
-  }
+  }]*/
 
 }
