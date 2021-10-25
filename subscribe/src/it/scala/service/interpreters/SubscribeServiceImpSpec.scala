@@ -90,17 +90,17 @@ class SubscribeServiceImpSpec
     val s = SubscribeService
       .make[IO](db)
 
-    val userId = SlackUserId(UUID.randomUUID())
+    val userId = SlackUserId(UUID.nameUUIDFromBytes("Samir_Kah1001".getBytes()))
 
     (for {
       _ <- s.insertSubscription(
         userId,
-        "Samir_Kah2",
+        "Samir_Kah1001",
         "/random",
         RepoCarrier(
           Repository(
             "Zamirk",
-            "Huffman-tree-encode-decode"
+            "Snowplow-schema-validation"
           )
         )
       )
