@@ -9,7 +9,8 @@ import org.http4s.HttpRoutes
 import org.typelevel.log4cats.{Logger, SelfAwareStructuredLogger}
 import service.algebras.{GithubApiAlg, SubscribeServiceAlg}
 import service.domain.ConfigModels.ServerConfig
-import service.route.endpoints.SubscriberServiceRoute
+import service.route.endpoints.{SlackRoute, SubscriberServiceRoute}
+
 import scala.concurrent.ExecutionContext.global
 
 object HTTPServer {
@@ -36,7 +37,7 @@ object HTTPServer {
     Router(
       "/health"                     -> HealthCheck[F](logger).routes,
       "/subscription"               -> SubscriberServiceRoute[F](service, githubApi, logger).routes,
-      "/subscription/slack/command" -> SubscriberServiceRoute[F](service, githubApi, logger).routes
+      "/subscription/slack/command" -> SlackRoute[F](service, githubApi, logger).routes
     )
 
   case class HealthCheck[F[_]](
