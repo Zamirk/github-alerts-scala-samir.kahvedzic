@@ -18,7 +18,7 @@ object DatabaseModels {
       subscription_type: RequestType
   )
 
-  sealed trait RequestType {
+  sealed trait RequestType extends Product with Serializable {
     def dbString: String
   }
 
