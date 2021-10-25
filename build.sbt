@@ -17,6 +17,6 @@ lazy val subscribe = (project in file("subscribe"))
     Defaults.itSettings,
     IntegrationTest / fork := true,
     IntegrationTest / parallelExecution := false,
-    fork in Test := true,
+    Test / fork := true,
     publish / skip := true
   )
