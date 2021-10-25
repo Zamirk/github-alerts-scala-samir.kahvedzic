@@ -1,12 +1,16 @@
 package service.route.helpers
 
 import org.http4s.UrlForm
-import service.domain.ApiModels.{InsertRepository, Repository, Subscription, SubscriptionsResponse}
+import service.domain.ApiModels.Subscription.{Organisation, Repositoryy}
+import service.domain.ApiModels._
+
+import java.time.{OffsetDateTime, ZoneOffset}
 
 object SampleData {
+  val offsetDatTime = OffsetDateTime.of(2000, 10, 10, 10, 10, 10, 10, ZoneOffset.ofHours(1))
 
   val sampleDataOne = {
-    InsertRepository(
+    RepoCarrier(
       Repository(
         "47deg",
         "thool"
@@ -15,7 +19,7 @@ object SampleData {
   }
 
   val dataToInsert2 = {
-    InsertRepository(
+    RepoCarrier(
       Repository(
         "47deg",
         "thool2"
@@ -24,7 +28,7 @@ object SampleData {
   }
 
   val sampleData3 = {
-    InsertRepository(
+    RepoCarrier(
       Repository(
         "higherkindness",
         "skeuomorph"
@@ -33,7 +37,7 @@ object SampleData {
   }
 
   val nonExistantOrganisation = {
-    InsertRepository(
+    RepoCarrier(
       Repository(
         "werwerwer",
         "thool"
@@ -44,22 +48,36 @@ object SampleData {
     SubscriptionsResponse(
       List(
         Subscription(
-          "47deg",
-          "thool",
-          "2021-04-15T12:30:15"
+          Organisation("47deg"),
+          Repositoryy("thool"),
+          offsetDatTime
         ),
         Subscription(
-          "higherkindness",
-          "skeuomorph",
-          "2021-04-26T12:45:25"
+          Organisation("higherkindness"),
+          Repositoryy("skeuomorph"),
+          offsetDatTime
         ),
         Subscription(
-          "47degrees",
-          "github4s",
-          "2021-05-01T09:15:05"
+          Organisation("47degrees"),
+          Repositoryy("github4s"),
+          offsetDatTime
         )
       )
     )
+
+  val data = SlackResponseBody(
+    ResponseField.InChannel,
+    "It's 80 degrees right now.",
+    List("*It's 80 degrees right now.*", "Partly cloudy today and tomorrow").map(m =>
+      SlackMessageBlock1(
+        "section",
+        SlackMessageBlock2(
+          "mrkdwn",
+          m
+        )
+      )
+    )
+  )
 
   lazy val validUrlEncodedData: UrlForm = UrlForm(
     "token"           -> "gIkuvaNzQIHg97ATvDxqgjtO",

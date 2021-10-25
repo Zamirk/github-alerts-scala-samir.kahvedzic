@@ -34,8 +34,9 @@ object HTTPServer {
       logger: Logger[F]
   ): HttpRoutes[F] =
     Router(
-      "/health"       -> HealthCheck[F](logger).routes,
-      "/subscription" -> SubscriberServiceRoute[F](service, githubApi, logger).routes
+      "/health"                     -> HealthCheck[F](logger).routes,
+      "/subscription"               -> SubscriberServiceRoute[F](service, githubApi, logger).routes,
+      "/subscription/slack/command" -> SubscriberServiceRoute[F](service, githubApi, logger).routes
     )
 
   case class HealthCheck[F[_]](

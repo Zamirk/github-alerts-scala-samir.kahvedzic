@@ -1,38 +1,122 @@
 package service.interpreters
-import cats.MonadThrow
+import cats.{ApplicativeError, MonadThrow}
+import cats.data.NonEmptyList
+import doobie.Transactor
 import service.algebras.SubscribeServiceAlg
-import service.domain.ApiErrors.SubscriberServiceException.{
-  RepositoryNotFound,
-  UnexpectedError,
-  UserNameNotFound
-}
-import service.domain.ApiModels.{InsertRepository, SlackUserId, Subscription, SubscriptionsResponse}
-import service.domain.SlackModels.{SlackCommand, SlackResponseBody}
+import service.domain.errors.ApiErrors.SubscriberServiceException._
+import service.domain.ApiModels._
+import service.domain.DatabaseModels._
+import cats.effect._
+import cats.free.Free
+import cats.implicits.toFunctorOps
+import doobie.implicits._
+import service.domain.ApiModels.Subscription.{Organisation, Repositoryy}
+import cats.implicits._
+import doobie.free.connection.ConnectionOp
+import service.database.queries.SubscribeServiceQueries
+
+import java.time._
 
 object SubscribeService {
 
   def make[F[_]](
-  ): SubscribeServiceAlg[F] = new SubscribeServiceAlg[F] {
-    override def getSubscriptions(s: SlackUserId): F[SubscriptionsResponse] =
-      ???
+      db: Transactor[F]
+  )(implicit F: MonadCancelThrow[F]): SubscribeServiceAlg[F] = new SubscribeServiceAlg[F] {
 
-    override def insertSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] = ???
+    type FreeFResponse[F[_]] = Free[ConnectionOp, F[SubscriptionsResponse]]
 
-    override def deleteSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] = ???
+    override def getSubscriptions(user: SlackUserId): F[SubscriptionsResponse] = {
+      (for {
+        doesExist <- SubscribeServiceQueries.existsUser(user).unique
+        subscription <-
+          if (doesExist)
+            SubscribeServiceQueries
+              .getSubscriptions(user)
+              .to[List]
+              .map(l => F.pure(SubscriptionsResponse(l))): FreeFResponse[F]
+          else
+            Free.pure(MonadThrow[F].raiseError(UserNameNotFound(user.uuid))): FreeFResponse[F]
+      } yield subscription).transact(db)
+    }.flatten
+
+    type FreeFResponse2[F[_]] = Free[ConnectionOp, F[Unit]]
+
+    override def deleteSubscription(s: SlackUserId, sub: RepoCarrier): F[Unit] = {
+      val r = RepoId(sub.subscription.genUUID)
+      (for {
+        userExists <- SubscribeServiceQueries.existsUser(s).unique
+        repoExists <- SubscribeServiceQueries.existsRepo(r).unique
+        deleteRepository <-
+          ((userExists, repoExists) match {
+            case (false, _) =>
+              Free.pure(MonadThrow[F].raiseError(UserNameNotFound(s.uuid)))
+            case (_, false) =>
+              Free.pure(MonadThrow[F].raiseError(RepositoryNotFound(sub)))
+            case _ => SubscribeServiceQueries.deleteSubscription(s, r).run.as(F.unit)
+          }): FreeFResponse2[F]
+      } yield deleteRepository).transact(db)
+    }.flatten
+
+    override def insertSubscription(
+        slackId: SlackUserId,
+        slackUser: String,
+        slackChannel: String,
+        sub: RepoCarrier
+    ): F[Unit] = {
+      (for {
+        _ <- {
+          SubscribeServiceQueries
+            .usersInsertionQuery(
+              slackId,
+              slackUser,
+              slackChannel
+            )
+            .run
+        }
+        _ <- SubscribeServiceQueries.repositoryInsertionQuery
+          .updateMany(
+            NonEmptyList.one(
+              DBRepository(
+                sub.subscription.genUUID,
+                sub.subscription.organization,
+                sub.subscription.repository
+              )
+            )
+          )
+        c <- SubscribeServiceQueries.subscriptionsInsertionQuery
+          .updateMany(
+            NonEmptyList.one(
+              DBSubscription(
+                slackId.uuid,
+                sub.subscription.genUUID,
+                OffsetDateTime.now(),
+                RequestType.OpenPR
+              )
+            )
+          )
+      } yield c).transact(db).as(())
+
+    }
 
     override def postSlackCommand(s: SlackUserId, sub: SlackCommand): F[SlackResponseBody] = ???
+
   }
 
   def stub[F[_]: MonadThrow]: SubscribeServiceAlg[F] = new SubscribeServiceAlg[F] {
     override def getSubscriptions(s: SlackUserId): F[SubscriptionsResponse] =
-      SubscribeService.mockDatabase.get(s.s) match {
+      SubscribeService.mockDatabase.get(s.uuid.toString) match {
         case Some(res) =>
           MonadThrow[F].pure(res)
         case None =>
-          MonadThrow[F].raiseError(UserNameNotFound(s.s))
+          MonadThrow[F].raiseError(UserNameNotFound(s.uuid))
       }
 
-    override def insertSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] =
+    override def insertSubscription(
+        slackId: SlackUserId,
+        slackUser: String,
+        slackChannel: String,
+        sub: RepoCarrier
+    ): F[Unit] =
       MonadThrow[F].unit
 
     //TODO Implementation in future PR
@@ -47,16 +131,16 @@ object SubscribeService {
         )
       )
 
-    override def deleteSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] =
-      SubscribeService.mockDatabase.get(s.s) match {
+    override def deleteSubscription(s: SlackUserId, sub: RepoCarrier): F[Unit] =
+      SubscribeService.mockDatabase.get(s.uuid.toString) match {
         case Some(subs) if {
               subs.subscriptions.exists(a =>
-                a.repository == sub.subscription.repository && a.organization == sub.subscription.organization
+                a.repository.rep == sub.subscription.repository && a.organization.org == sub.subscription.organization
               )
             } =>
           MonadThrow[F].unit
         case Some(_) => MonadThrow[F].raiseError(RepositoryNotFound(sub))
-        case None    => MonadThrow[F].raiseError(UserNameNotFound(s.s))
+        case None    => MonadThrow[F].raiseError(UserNameNotFound(s.uuid))
       }
   }
 
@@ -65,10 +149,15 @@ object SubscribeService {
       override def getSubscriptions(s: SlackUserId): F[SubscriptionsResponse] =
         MonadThrow[F].raiseError(UnexpectedError())
 
-      override def insertSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] =
+      def insertSubscription(
+          slackId: SlackUserId,
+          slackUser: String,
+          slackChannel: String,
+          sub: RepoCarrier
+      ): F[Unit] =
         MonadThrow[F].raiseError(UnexpectedError())
 
-      override def deleteSubscription(s: SlackUserId, sub: InsertRepository): F[Unit] =
+      override def deleteSubscription(s: SlackUserId, sub: RepoCarrier): F[Unit] =
         MonadThrow[F].raiseError(UnexpectedError())
 
       override def postSlackCommand(s: SlackUserId, sub: SlackCommand): F[SlackResponseBody] =
@@ -77,27 +166,25 @@ object SubscribeService {
     }
   }
 
+  val offsetDatTime = OffsetDateTime.of(2000, 10, 10, 10, 10, 10, 10, ZoneOffset.ofHours(1))
+
   var mockDatabase = Map(
-    "1234" -> SubscriptionsResponse(
+    "48918a8f-3175-3474-9d92-e19d5fcd9124" -> SubscriptionsResponse(
       List(
         Subscription(
-          "47deg",
-          "thool",
-          "2021-04-15T12:30:15"
+          Organisation("47deg"),
+          Repositoryy("thool"),
+          offsetDatTime
         ),
         Subscription(
-          "higherkindness",
-          "skeuomorph",
-          "2021-04-26T12:45:25"
+          Organisation("higherkindness"),
+          Repositoryy("skeuomorph"),
+          offsetDatTime
         ),
-        Subscription(
-          "47degrees",
-          "github4s",
-          "2021-05-01T09:15:05"
-        )
+        Subscription(Organisation("47degrees"), Repositoryy("github4s"), offsetDatTime)
       )
     ),
-    "2345" -> SubscriptionsResponse()
+    "Ali_Shah" -> SubscriptionsResponse()
   )
 
 }

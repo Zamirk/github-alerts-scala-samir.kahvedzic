@@ -1,14 +1,15 @@
-package service.database
+package service.database.connection
 
-import service.domain.ConfigModels._
-import cats.syntax.all._
 import cats.effect.Resource
 import cats.effect.kernel.Async
-import org.typelevel.log4cats.SelfAwareStructuredLogger
-import org.flywaydb.core.Flyway
-import doobie.ExecutionContexts
 import doobie.hikari.HikariTransactor
-object DatabaseConnection {
+import org.flywaydb.core.Flyway
+import org.typelevel.log4cats.SelfAwareStructuredLogger
+import service.domain.ConfigModels.Config
+import cats.syntax.all._
+import doobie.ExecutionContexts
+
+object DBConnection {
 
   def dbConnection[F[_]](
       loadedConfig: Config,

@@ -22,7 +22,7 @@ CREATE TABLE subscriptions
 (
     user_id           UUID NOT NULL,
     repository_id     UUID NOT NULL,
-    subscribed_at     VARCHAR NOT NULL,
+    subscribed_at     TIMESTAMPTZ NOT NULL,
     subscription_type VARCHAR NOT NULL,
     PRIMARY KEY (user_id, repository_id),
     CONSTRAINT fk_user_id FOREIGN KEY(user_id) REFERENCES users(user_id) ON
