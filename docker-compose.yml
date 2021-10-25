@@ -1,0 +1,10 @@
+version: '3.3'
+services:
+  postgres:
+    container_name: testdatabase
+    environment:
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_DB=test
+    ports:
+      - '5436:5432'
+    image: postgres

@@ -12,13 +12,7 @@ import org.scalatest.compatible.Assertion
 import org.scalatest.freespec.AsyncFreeSpec
 import org.typelevel.log4cats.noop.NoOpLogger
 import service.algebras.{GithubApiAlg, SubscribeServiceAlg}
-import service.domain.ApiModels.{InsertRepository, SubscriptionsResponse}
-import service.domain.SlackModels.{
-  ResponseField,
-  SlackMessageBlock1,
-  SlackMessageBlock2,
-  SlackResponseBody
-}
+import service.domain.ApiModels._
 import service.route.helpers.DefaultAssertions._
 import service.route.helpers.SampleData
 import service.interpreters.{GithubApi, SubscribeService}
@@ -30,6 +24,11 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
     scala.concurrent.ExecutionContext.global
 
   val malformedJson = Some("Malformed Json")
+
+  val uuid_1 = """Samir_Kah"""
+  val uuid_2 = """Ali_Shah"""
+  val uuid_3 = """Test_User1"""
+  val uuid_4 = """Test_User2"""
 
   private def decodeString: Response[IO] => String = { (r: Response[IO]) =>
     r.body.compile.toVector.unsafeRunSync().map(_.toChar).mkString
@@ -78,7 +77,7 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
       "should return an OK status code" in {
 
         assertRequest[IO](
-          request = buildRequest("/subscription/1234"),
+          request = buildRequest(s"/subscription/$uuid_1"),
           assertion = isOk
         )
       }
@@ -86,7 +85,7 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
       "should return an InternalServerError" in {
 
         assertRequest[IO](
-          request = buildRequest("/subscription/1234"),
+          request = buildRequest(s"/subscription/$uuid_1"),
           subscribeService = brokensubscriptionService,
           assertion = isInternalServerError
         )
@@ -95,7 +94,7 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
       "should return an NotFound status code" in {
 
         assertRequest[IO](
-          request = buildRequest("/subscription/7979"),
+          request = buildRequest(s"/subscription/$uuid_4"),
           assertion = isNotFound
         )
       }
@@ -103,7 +102,7 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
       "should return a valid Json String" in {
 
         assertRequest[IO](
-          request = buildRequest("/subscription/1234"),
+          request = buildRequest(s"/subscription/$uuid_1"),
           assertion = (r: Response[IO]) =>
             parse(decodeString(r)) match {
               case Left(_)  => assert(false)
@@ -115,10 +114,13 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
       "should return the correct decoded result" in {
 
         assertRequest[IO](
-          request = buildRequest("/subscription/1234"),
+          request = buildRequest(s"/subscription/$uuid_1"),
           assertion = (r: Response[IO]) =>
             decode[SubscriptionsResponse](decodeString(r)) match {
-              case Left(_)     => assert(false)
+              case Left(a) => {
+                println(a)
+                assert(false)
+              }
               case Right(data) => assert(data === SampleData.sampleData)
             }
         )
@@ -132,9 +134,9 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
 
         assertRequest[IO](
           request = buildRequest(
-            path = "/subscription/8000",
+            path = s"/subscription/$uuid_1",
             method = PUT,
-            body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
+            body = Some(Encoder[RepoCarrier].apply(SampleData.sampleDataOne).toString())
           ),
           assertion = isCreated
         )
@@ -143,9 +145,9 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
       "should return an InternalServerError status code when there is a service level error" in {
         assertRequest[IO](
           request = buildRequest(
-            path = "/subscription/8000",
+            path = s"/subscription/$uuid_3",
             method = PUT,
-            body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
+            body = Some(Encoder[RepoCarrier].apply(SampleData.sampleDataOne).toString())
           ),
           githubApi = brokenGithubService[IO],
           assertion = isInternalServerError
@@ -158,7 +160,7 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
 
           assertRequest[IO](
             request = buildRequest(
-              path = "/subscription/8000",
+              path = s"/subscription/$uuid_1",
               method = PUT,
               body = malformedJson
             ),
@@ -171,10 +173,9 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
 
           assertRequest[IO](
             request = buildRequest(
-              path = "/subscription/1234",
+              path = s"/subscription/$uuid_1",
               method = PUT,
-              body =
-                Some(Encoder[InsertRepository].apply(SampleData.nonExistantOrganisation).toString())
+              body = Some(Encoder[RepoCarrier].apply(SampleData.nonExistantOrganisation).toString())
             ),
             assertion = isBadRequest
           )
@@ -184,9 +185,9 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
 
           assertRequest[IO](
             request = buildRequest(
-              path = "/subscription/1234",
+              path = s"/subscription/$uuid_1",
               method = PUT,
-              body = Some(Encoder[InsertRepository].apply(SampleData.dataToInsert2).toString())
+              body = Some(Encoder[RepoCarrier].apply(SampleData.dataToInsert2).toString())
             ),
             assertion = isBadRequest
           )
@@ -200,9 +201,9 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
 
         assertRequest[IO](
           request = buildRequest(
-            path = "/subscription/1234",
+            path = s"/subscription/$uuid_1",
             method = DELETE,
-            body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
+            body = Some(Encoder[RepoCarrier].apply(SampleData.sampleDataOne).toString())
           ),
           assertion = isNoContent
         )
@@ -211,9 +212,9 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
       "should return an InternalServerError status code when there is a service level error" in {
         assertRequest[IO](
           request = buildRequest(
-            path = "/subscription/1234",
+            path = s"/subscription/$uuid_1",
             method = PUT,
-            body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
+            body = Some(Encoder[RepoCarrier].apply(SampleData.sampleDataOne).toString())
           ),
           githubApi = brokenGithubService[IO],
           assertion = isInternalServerError
@@ -224,7 +225,7 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
 
         assertRequest[IO](
           request = buildRequest(
-            path = "/subscription/8000",
+            path = s"/subscription/$uuid_3",
             method = DELETE,
             body = malformedJson
           ),
@@ -240,9 +241,9 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
 
           assertRequest[IO](
             request = buildRequest(
-              path = "/subscription/121212",
+              path = s"/subscription/$uuid_4",
               method = DELETE,
-              body = Some(Encoder[InsertRepository].apply(SampleData.sampleDataOne).toString())
+              body = Some(Encoder[RepoCarrier].apply(SampleData.sampleDataOne).toString())
             ),
             assertion = isNotFound
           )
@@ -252,10 +253,9 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
 
           assertRequest[IO](
             request = buildRequest(
-              path = "/subscription/1234",
+              path = s"/subscription/$uuid_1",
               method = DELETE,
-              body =
-                Some(Encoder[InsertRepository].apply(SampleData.nonExistantOrganisation).toString())
+              body = Some(Encoder[RepoCarrier].apply(SampleData.nonExistantOrganisation).toString())
             ),
             assertion = isNotFound
           )

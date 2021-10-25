@@ -1,15 +1,15 @@
 package service.interpreters
 
-import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.effect.IO
+import cats.effect.testing.scalatest.AsyncIOSpec
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
-import service.domain.ApiErrors.SubscriberServiceException.{RepositoryNotFound, UserNameNotFound}
+import service.domain.ApiModels.SlackCommand.{Command, ResponseUrl, TriggerId, UserId}
+import service.domain.ApiModels.Subscription.{Organisation, Repositoryy}
 import service.domain.ApiModels._
-import service.domain.SlackModels
-import service.domain.SlackModels.{SlackCommand, SlackResponseBody}
-import service.domain.SlackModels.SlackCommand.{Command, ResponseUrl, TriggerId, UserId}
-
+import service.domain.errors.ApiErrors.SubscriberServiceException._
+import java.time.{OffsetDateTime, ZoneOffset}
+import java.util.UUID
 import scala.concurrent.ExecutionContext
 
 class SubscribeServiceStubSpec extends AsyncFreeSpec with Matchers with AsyncIOSpec {
@@ -19,27 +19,36 @@ class SubscribeServiceStubSpec extends AsyncFreeSpec with Matchers with AsyncIOS
   def runGetSubscription(s: SlackUserId): IO[SubscriptionsResponse] =
     SubscribeService.stub[IO].getSubscriptions(s)
 
-  def runDeleteSubscription(s: SlackUserId, i: InsertRepository): IO[Unit] =
+  def runDeleteSubscription(s: SlackUserId, i: RepoCarrier): IO[Unit] =
     SubscribeService.stub[IO].deleteSubscription(s, i)
 
-  def runPostSlackCommand(s: SlackUserId, sc: SlackCommand): IO[SlackModels.SlackResponseBody] =
+  def runPostSlackCommand(s: SlackUserId, sc: SlackCommand): IO[SlackResponseBody] =
     SubscribeService.stub[IO].postSlackCommand(s, sc)
 
-  private lazy val validUser: SlackUserId = SlackUserId("1234")
+  val uuid_1 = """Samir_Kah"""
+  val uuid_2 = """Ali_Shah"""
 
-  private lazy val invalidUser: SlackUserId = SlackUserId("1235")
+  private lazy val validUser: SlackUserId = SlackUserId(UUID.nameUUIDFromBytes(uuid_1.getBytes))
 
-  private lazy val validOrgRepo = InsertRepository(Repository("47deg", "thool"))
+  private lazy val invalidUser: SlackUserId = SlackUserId(UUID.nameUUIDFromBytes(uuid_2.getBytes))
 
-  private lazy val invalidRepo = InsertRepository(Repository("47deg", "NotFound"))
+  private lazy val validOrgRepo = RepoCarrier(Repository("47deg", "thool"))
 
-  private lazy val invalidOrg = InsertRepository(Repository("48deg", "thool"))
+  private lazy val invalidRepo = RepoCarrier(Repository("47deg", "NotFound"))
+
+  private lazy val invalidOrg = RepoCarrier(Repository("48deg", "thool"))
+
+  val offsetDatTime = OffsetDateTime.of(2000, 10, 10, 10, 10, 10, 10, ZoneOffset.ofHours(1))
 
   private lazy val successfulResult: SubscriptionsResponse = SubscriptionsResponse(
     List(
-      Subscription("47deg", "thool", "2021-04-15T12:30:15"),
-      Subscription("higherkindness", "skeuomorph", "2021-04-26T12:45:25"),
-      Subscription("47degrees", "github4s", "2021-05-01T09:15:05")
+      Subscription(Organisation("47deg"), Repositoryy("thool"), offsetDatTime),
+      Subscription(
+        Organisation("higherkindness"),
+        Repositoryy("skeuomorph"),
+        offsetDatTime
+      ),
+      Subscription(Organisation("47degrees"), Repositoryy("github4s"), offsetDatTime)
     )
   )
 

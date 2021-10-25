@@ -8,10 +8,15 @@ This service aims to send messages to a users Slack account, composed of Github 
 A user may subscribe to the Github repositories for which they would like to receive events from.
 Slack commands are used to subscribe to events, or alter parameters of the service for the user.
 
+# IT - Integration testing
+Integration tests run on a database called test. Flyway should create and destroy the tables
+everytime you run the tests.
 
-This application requires a postgress database. Use the following command to create a database with Docker.
+This application requires a postgress database. Use the following commands to create a 2 database instances with Docker.
 
-docker run --name postgres -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_DB=fortyseven -d -p 5432:5432 postgres
+docker run --name postgres -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_DB=fortyseven -d -p 5432:5432 postgres -c log_statement=all
+docker run --name testdatabase -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_DB=test -d -p 5436:5432 postgres -c log_statement=all
+
 When executed, flyway should automatically create the DB Schema if the tables do not exist already. Table design can be found in V1__create_default_schema.sql under resources/db/migration
 
 Application is configured to run on port 8080 @http://localhost:8080/, this can be changed in application.conf

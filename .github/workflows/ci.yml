@@ -32,3 +32,11 @@ jobs:
         run: sbt ci-test
         env:
           GITHUB_TOKEN: ${{ secrets.ADMIN_GITHUB_TOKEN }}
+      - name: Setting up database
+        run: docker-compose up -d
+      - name: Database ntegration tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GATOKEN }}
+        run: 'sbt ++${{ matrix.scala }} it:test'
+      - name: Shut down Postgres
+        run: docker-compose down
