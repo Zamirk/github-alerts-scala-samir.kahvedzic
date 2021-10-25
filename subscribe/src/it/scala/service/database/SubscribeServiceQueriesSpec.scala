@@ -9,11 +9,9 @@ import doobie.scalatest.{AnalysisMatchers, IOChecker}
 import doobie.util.transactor.Transactor.Aux
 import org.scalatest.freespec.AnyFreeSpec
 import service.database.connection.DBConnection.db
-import service.database.queries.SubscribeServiceQueries
 import service.domain.ApiModels.{RepoId, SlackUserId}
 
 import java.util.UUID
-
 class SubscribeServiceQueriesSpec extends AnyFreeSpec with AnalysisMatchers[IO] with IOChecker {
 
   def transactor: Transactor[IO] = db
