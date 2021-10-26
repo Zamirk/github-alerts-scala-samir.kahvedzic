@@ -23,6 +23,9 @@ object DatabaseModels {
   }
 
   object RequestType {
+    case object All extends RequestType {
+      override val dbString: String = "All Events"
+    }
     case object OpenPR extends RequestType {
       override val dbString: String = "Open Pull Request"
     }

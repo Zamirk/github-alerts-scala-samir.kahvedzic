@@ -15,7 +15,8 @@ import service.algebras.{GithubApiAlg, SubscribeServiceAlg}
 import service.domain.ApiModels._
 import service.route.helpers.DefaultAssertions._
 import service.route.helpers.SampleData
-import service.interpreters.{GithubApi, SubscribeService}
+import service.interpreters.GithubApi
+import service.interpreters.stubs._
 
 import scala.concurrent.ExecutionContext
 

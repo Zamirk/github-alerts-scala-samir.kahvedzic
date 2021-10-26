@@ -49,7 +49,7 @@ object SubscribeServiceQueries {
         WHERE subscriptions.user_id=${s.uuid} AND subscriptions.repository_id=${r.uuid}
     """.update
 
-  def usersInsertionQuery(
+  def insertUser(
       user_id: SlackUserId,
       slack_user_id: String,
       slack_channel_id: String
@@ -59,7 +59,7 @@ object SubscribeServiceQueries {
   def withColumns(c: List[String]): String =
     s""" ( ${c.mkString(",")}  ) VALUES ( ${List.fill(c.length)("?").mkString(",")}  ) """
 
-  def repositoryInsertionQuery: Update[DBRepository] =
+  def insertRepository(): Update[DBRepository] =
     Update[DBRepository](
       s"""INSERT INTO repositories """ + withColumns(
         List(
@@ -70,7 +70,7 @@ object SubscribeServiceQueries {
       )
     )
 
-  def subscriptionsInsertionQuery: Update[DBSubscription] =
+  def insertSubscription(): Update[DBSubscription] =
     Update[DBSubscription](
       s"""INSERT INTO subscriptions """ + withColumns(
         List(

@@ -11,19 +11,20 @@ import service.domain.errors.ApiErrors.SubscriberServiceException._
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 import scala.concurrent.ExecutionContext
+import service.interpreters._
 
 class SubscribeServiceStubSpec extends AsyncFreeSpec with Matchers with AsyncIOSpec {
   override implicit def executionContext: ExecutionContext =
     scala.concurrent.ExecutionContext.global
 
   def runGetSubscription(s: SlackUserId): IO[SubscriptionsResponse] =
-    SubscribeService.stub[IO].getSubscriptions(s)
+    stubs.SubscribeService.stub[IO].getSubscriptions(s)
 
   def runDeleteSubscription(s: SlackUserId, i: RepoCarrier): IO[Unit] =
-    SubscribeService.stub[IO].deleteSubscription(s, i)
+    stubs.SubscribeService.stub[IO].deleteSubscription(s, i)
 
   def runPostSlackCommand(s: SlackUserId, sc: SlackCommand): IO[SlackResponseBody] =
-    SubscribeService.stub[IO].postSlackCommand(s, sc)
+    stubs.SubscribeService.stub[IO].postSlackCommand(s, sc)
 
   val uuid_1 = """Samir_Kah"""
   val uuid_2 = """Ali_Shah"""

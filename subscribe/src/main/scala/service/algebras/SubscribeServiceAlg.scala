@@ -1,16 +1,18 @@
 package service.algebras
 
 import service.domain.ApiModels._
+import service.domain.DatabaseModels.RequestType
 
 trait SubscribeServiceAlg[F[_]] {
 
   def getSubscriptions(s: SlackUserId): F[SubscriptionsResponse]
 
   def insertSubscription(
-      slackId: SlackUserId,
-      slackUser: String,
-      slackChannel: String,
-      sub: RepoCarrier
+      id: SlackUserId,
+      user: String,
+      channel: String,
+      r: Repository,
+      e: RequestType = RequestType.All
   ): F[Unit]
 
   def deleteSubscription(s: SlackUserId, sub: RepoCarrier): F[Unit]

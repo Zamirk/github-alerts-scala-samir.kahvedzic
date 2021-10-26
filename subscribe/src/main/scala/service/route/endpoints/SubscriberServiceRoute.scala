@@ -30,7 +30,7 @@ final case class SubscriberServiceRoute[F[_]](
         for {
           uuid <- validateUUID(userName)
           _    <- githubApiValidation.validateRepo(d)
-          _    <- service.insertSubscription(SlackUserId(uuid), userName, "/random", d)
+          _    <- service.insertSubscription(SlackUserId(uuid), userName, "/random", d.subscription)
           res  <- Created()
         } yield res
       }
