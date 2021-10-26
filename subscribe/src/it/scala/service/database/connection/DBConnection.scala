@@ -22,21 +22,4 @@ object DBConnection {
     } yield db
   }
 
-  def createTables(db: HikariTransactor[IO]): IO[Unit] = {
-    println("Heyyy")
-    db.configure { dataSource =>
-      Async[IO].delay {
-        Flyway.configure().dataSource(dataSource).load().migrate()
-      } *> Async[IO].unit
-    }
-  }
-
-  def dropTables(db: HikariTransactor[IO]): IO[Unit] = {
-    db.configure { dataSource =>
-      IO.delay {
-        Flyway.configure().dataSource(dataSource).load().clean()
-      } *> Async[IO].unit
-    }
-  }
-
 }

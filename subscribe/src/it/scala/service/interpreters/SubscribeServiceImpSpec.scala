@@ -8,6 +8,7 @@ import doobie._
 import doobie.implicits._
 import doobie.util.ExecutionContexts
 import doobie.util.transactor.Transactor
+import org.flywaydb.core.Flyway
 import org.scalatest.freespec.FixtureAsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 import service.database.connection.DBConnection
@@ -26,7 +27,19 @@ class SubscribeServiceImpSpec
   override val resource: Resource[IO, Transactor[IO]] = {
     for {
       db <- DBConnection.buildTransactor()
-      _  <- Resource.make(createTables(db))(_ => dropTables(db))
+      _ <- Resource.make(
+        db.configure { dataSource =>
+          Async[IO].delay {
+            Flyway.configure().dataSource(dataSource).load().migrate()
+          } *> Async[IO].unit
+        }
+      )(_ => {
+        db.configure { dataSource =>
+          IO.delay {
+            Flyway.configure().dataSource(dataSource).load().clean()
+          } *> Async[IO].unit
+        }
+      })
     } yield db
   }
 

@@ -1,10 +1,12 @@
 package service.database
 
-import cats.effect.IO
+import cats.effect.{Async, IO, Resource}
 import cats.effect.unsafe.implicits.global
+import doobie.hikari.HikariTransactor
 import doobie.scalatest.{AnalysisMatchers, IOChecker}
 import doobie.util.ExecutionContexts
 import doobie.util.transactor.Transactor
+import org.flywaydb.core.Flyway
 import org.scalatest._
 import org.scalatest.freespec.AnyFreeSpec
 import service.database.connection.DBConnection
@@ -21,11 +23,25 @@ trait MatcherChecks[F[_]]
     with BeforeAndAfterAll {
 
   override def beforeAll(): Unit = {
-    DBConnection.buildTransactor().map(createTables).use(_ => IO.unit).unsafeRunSync()
+    (Async[IO].delay {
+      Flyway
+        .configure()
+        .dataSource("jdbc:postgresql://localhost:5436/test", "postgres", "mysecretpassword")
+        .load()
+        .migrate()
+    } *> Async[IO].unit).unsafeRunSync()
+
   }
 
   override def afterAll(): Unit = {
-    DBConnection.buildTransactor().map(dropTables).use(_ => IO.unit).unsafeRunSync()
+    (Async[IO].delay {
+      Flyway
+        .configure()
+        .dataSource("jdbc:postgresql://localhost:5436/test", "postgres", "mysecretpassword")
+        .load()
+        .migrate()
+    } *> Async[IO].unit).unsafeRunSync()
+
   }
 
   val id: SlackUserId = SlackUserId(UUID.randomUUID())
