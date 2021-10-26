@@ -22,4 +22,9 @@ object DBConnection {
     } yield db
   }
 
+  val fw = Flyway
+    .configure()
+    .dataSource("jdbc:postgresql://localhost:5436/test", "postgres", "mysecretpassword")
+    .load()
+
 }

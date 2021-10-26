@@ -10,7 +10,7 @@ import org.flywaydb.core.Flyway
 import org.scalatest._
 import org.scalatest.freespec.AnyFreeSpec
 import service.database.connection.DBConnection
-import service.database.connection.DBConnection.{createTables, dropTables}
+import service.database.connection.DBConnection.fw
 import service.database.queries.SubscribeServiceQueries
 import service.domain.ApiModels.{RepoId, SlackUserId}
 
@@ -24,22 +24,14 @@ trait MatcherChecks[F[_]]
 
   override def beforeAll(): Unit = {
     (Async[IO].delay {
-      Flyway
-        .configure()
-        .dataSource("jdbc:postgresql://localhost:5436/test", "postgres", "mysecretpassword")
-        .load()
-        .migrate()
+      fw.migrate()
     } *> Async[IO].unit).unsafeRunSync()
 
   }
 
   override def afterAll(): Unit = {
     (Async[IO].delay {
-      Flyway
-        .configure()
-        .dataSource("jdbc:postgresql://localhost:5436/test", "postgres", "mysecretpassword")
-        .load()
-        .migrate()
+      fw.migrate()
     } *> Async[IO].unit).unsafeRunSync()
 
   }
