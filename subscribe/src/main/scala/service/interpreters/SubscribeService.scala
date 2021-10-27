@@ -1,6 +1,5 @@
 package service.interpreters
-import cats.{ApplicativeError, MonadThrow}
-import cats.data.NonEmptyList
+import cats._
 import doobie.Transactor
 import service.algebras.SubscribeServiceAlg
 import service.domain.errors.ApiErrors.SubscriberServiceException._
@@ -10,12 +9,13 @@ import cats.effect._
 import cats.free.Free
 import cats.implicits.toFunctorOps
 import doobie.implicits._
-import service.domain.ApiModels.Subscription.{Organisation, Repositoryy}
 import cats.implicits._
-import doobie.free.connection.ConnectionOp
+import doobie.free.connection.{ConnectionIO, ConnectionOp}
 import service.database.queries.SubscribeServiceQueries
+import service.domain.ApiModels.Subscription.{Organisation, Repositoryy}
 
 import java.time._
+import scala.util.control.NoStackTrace
 
 object SubscribeService {
 
@@ -23,83 +23,59 @@ object SubscribeService {
       db: Transactor[F]
   )(implicit F: MonadCancelThrow[F]): SubscribeServiceAlg[F] = new SubscribeServiceAlg[F] {
 
-    type FreeFResponse[F[_]] = Free[ConnectionOp, F[SubscriptionsResponse]]
+    type FS[F] = Free[ConnectionOp, F]
+    type U[A]  = ConnectionIO[A]
 
-    override def getSubscriptions(user: SlackUserId): F[SubscriptionsResponse] = {
-      (for {
-        doesExist <- SubscribeServiceQueries.existsUser(user).unique
-        subscription <-
-          if (doesExist)
-            SubscribeServiceQueries
-              .getSubscriptions(user)
-              .to[List]
-              .map(l => F.pure(SubscriptionsResponse(l))): FreeFResponse[F]
-          else
-            Free.pure(MonadThrow[F].raiseError(UserNameNotFound(user.uuid))): FreeFResponse[F]
-      } yield subscription).transact(db)
-    }.flatten
+    val q: SubscribeServiceQueries.type = SubscribeServiceQueries
 
-    type FreeFResponse2[F[_]] = Free[ConnectionOp, F[Unit]]
+    def insertUser(s: SlackUserId, b: String, c: String): U[Int] = q.upsertUser(s, b, c).run
+    def insertRepository(d: DBRepository): U[Int]                = q.upsertRepository(d).run
+    def insertSubscription(d: DBSubscription): U[Int]            = q.insertSubscription(d).run
+    def getSubscribers(s: SlackUserId): U[List[Subscription]]    = q.getSubscriptions(s).to[List]
+    def existsUser(s: SlackUserId): U[Boolean]                   = q.existsUser(s).unique
+    def existsRepo(s: SlackUserId, r: RepoId): U[Boolean]        = q.existsRepo(s, r).unique
+    def deleteSubscription(s: SlackUserId, r: RepoId): U[Int]    = q.deleteSubscription(s, r).run
 
-    override def deleteSubscription(s: SlackUserId, sub: RepoCarrier): F[Unit] = {
-      val r = RepoId(sub.subscription.genUUID)
-      (for {
-        userExists <- SubscribeServiceQueries.existsUser(s).unique
-        repoExists <- SubscribeServiceQueries.existsRepo(r).unique
-        deleteRepository <-
-          ((userExists, repoExists) match {
-            case (false, _) =>
-              Free.pure(MonadThrow[F].raiseError(UserNameNotFound(s.uuid)))
-            case (_, false) =>
-              Free.pure(MonadThrow[F].raiseError(RepositoryNotFound(sub)))
-            case _ => SubscribeServiceQueries.deleteSubscription(s, r).run.as(F.unit)
-          }): FreeFResponse2[F]
-      } yield deleteRepository).transact(db)
-    }.flatten
+    def raiseError[D](e: NoStackTrace): FS[F[D]]           = Free.pure(MonadThrow[F].raiseError(e))
+    def flatTransact[A](a: Free[ConnectionOp, F[A]]): F[A] = a.transact(db).flatten
+
+    override def getSubscriptions(user: SlackUserId): F[SubscriptionsResponse] =
+      flatTransact(
+        existsUser(user)
+          .flatMap {
+            case true  => getSubscribers(user).map(l => F.pure(SubscriptionsResponse(l)))
+            case false => raiseError(UserNameNotFound(user.uuid))
+          }
+      )
+
+    override def deleteSubscription(s: SlackUserId, sub: RepoCarrier): F[Unit] =
+      flatTransact[Unit] {
+        val r = RepoId(sub.subscription.genUUID)
+
+        (existsUser(s), existsRepo(s, r)).tupled.flatMap {
+          case (true, true) => deleteSubscription(s, r).as(F.unit)
+          case (false, _)   => raiseError(UserNameNotFound(s.uuid))
+          case (_, false)   => raiseError(RepositoryNotFound(sub))
+        }
+      }
 
     override def insertSubscription(
-        slackId: SlackUserId,
-        slackUser: String,
-        slackChannel: String,
-        sub: RepoCarrier
+        id: SlackUserId,
+        user: String,
+        channel: String,
+        r: Repository,
+        e: RequestType = RequestType.OpenPR
     ): F[Unit] = {
-      (for {
-        _ <- {
-          SubscribeServiceQueries
-            .usersInsertionQuery(
-              slackId,
-              slackUser,
-              slackChannel
-            )
-            .run
-        }
-        _ <- SubscribeServiceQueries.repositoryInsertionQuery
-          .updateMany(
-            NonEmptyList.one(
-              DBRepository(
-                sub.subscription.genUUID,
-                sub.subscription.organization,
-                sub.subscription.repository
-              )
-            )
-          )
-        c <- SubscribeServiceQueries.subscriptionsInsertionQuery
-          .updateMany(
-            NonEmptyList.one(
-              DBSubscription(
-                slackId.uuid,
-                sub.subscription.genUUID,
-                OffsetDateTime.now(),
-                RequestType.OpenPR
-              )
-            )
-          )
-      } yield c).transact(db).as(())
+      val (uuid, org, repo) = (r.genUUID, r.organization, r.repository)
 
-    }
+      for {
+        _   <- insertUser(id, user, channel)
+        _   <- insertRepository(DBRepository(uuid, org, repo))
+        res <- insertSubscription(DBSubscription(id.uuid, uuid, OffsetDateTime.now(), e))
+      } yield res
+    }.transact(db).as(())
 
     override def postSlackCommand(s: SlackUserId, sub: SlackCommand): F[SlackResponseBody] = ???
-
   }
 
   def stub[F[_]: MonadThrow]: SubscribeServiceAlg[F] = new SubscribeServiceAlg[F] {
@@ -112,10 +88,11 @@ object SubscribeService {
       }
 
     override def insertSubscription(
-        slackId: SlackUserId,
-        slackUser: String,
-        slackChannel: String,
-        sub: RepoCarrier
+        id: SlackUserId,
+        user: String,
+        channel: String,
+        r: Repository,
+        e: RequestType = RequestType.OpenPR
     ): F[Unit] =
       MonadThrow[F].unit
 
@@ -150,10 +127,11 @@ object SubscribeService {
         MonadThrow[F].raiseError(UnexpectedError())
 
       def insertSubscription(
-          slackId: SlackUserId,
-          slackUser: String,
-          slackChannel: String,
-          sub: RepoCarrier
+          id: SlackUserId,
+          user: String,
+          channel: String,
+          r: Repository,
+          e: RequestType = RequestType.OpenPR
       ): F[Unit] =
         MonadThrow[F].raiseError(UnexpectedError())
 

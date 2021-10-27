@@ -4,124 +4,182 @@ import cats.effect.IO
 import cats.effect._
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.effect.testing.scalatest.CatsResourceIO
-import cats.syntax.all._
-import doobie._
-import doobie.hikari.HikariTransactor
-import doobie.implicits._
-import doobie.util.ExecutionContexts
-import doobie.util.transactor.Transactor
+import org.flywaydb.core.Flyway
+import org.scalatest.Assertion
 import org.scalatest.freespec.FixtureAsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
-import org.flywaydb.core.Flyway
-import service.domain.ApiModels.{RepoCarrier, Repository, SlackUserId}
-import service.domain.errors.ApiErrors.SubscriberServiceException.UserNameNotFound
+import service.domain.ApiModels.Subscription.{Organisation, Repositoryy}
+import service.domain.ApiModels._
+import service.domain.errors.ApiErrors.SubscriberServiceException._
 
 import java.util.UUID
+import service.algebras.SubscribeServiceAlg
+import service.database.connection.DBConnection
 
 class SubscribeServiceImpSpec
     extends FixtureAsyncFreeSpec
+    with CatsResourceIO[SubscribeServiceAlg[IO]]
     with Matchers
-    with CatsResourceIO[Transactor[IO]]
     with AsyncIOSpec {
 
-  override val resource: Resource[IO, Transactor[IO]] = {
+  override val resource: Resource[IO, SubscribeServiceAlg[IO]] = {
     for {
-      db <- for {
-        ce <- ExecutionContexts.fixedThreadPool[IO](32)
-        xa <- HikariTransactor.newHikariTransactor[IO](
-          "org.postgresql.Driver",
-          "jdbc:postgresql://localhost:5436/test",
-          "postgres",
-          "mysecretpassword",
-          ce
-        )
-      } yield xa
-      _ <- Resource.make(createTables(db))(_ => dropTables(db))
-    } yield db
+      db <- DBConnection.buildTransactor()
+      _ <- Resource.make(
+        db.configure { dataSource =>
+          Async[IO].delay {
+            Flyway.configure().dataSource(dataSource).load().migrate()
+          } *> Async[IO].unit
+        }
+      )(_ => {
+        db.configure { dataSource =>
+          IO.delay {
+            Flyway.configure().dataSource(dataSource).load().clean()
+          } *> Async[IO].unit
+        }
+      })
+    } yield SubscribeService.make[IO](db)
   }
 
-  private def createTables(db: HikariTransactor[IO]): IO[Unit] = {
-    db.configure { dataSource =>
-      Async[IO].delay {
-        Flyway.configure().dataSource(dataSource).load().migrate()
-      } *> Async[IO].unit
+  def mkSlackId(s: Option[String] = None): SlackUserId = SlackUserId(
+    s.map(v => UUID.nameUUIDFromBytes(v.getBytes)).getOrElse(UUID.randomUUID())
+  )
+
+  private def pass: Assertion = assert(true)
+  private def fail: Assertion = assert(false)
+
+  private val gOwner = "Zamirk"
+  private val user   = "Samir_Kah"
+
+  private val repoOne = Repository(gOwner, "Huffman-tree-encode-decode")
+  private val repoTwo = Repository(gOwner, "Snowplow-schema-validation")
+
+  private val channel1 = "/random"
+  private val channel2 = "/general"
+
+  "InsertSubscription " - {
+
+    "should return Unit when successfully inserting" in { ss =>
+      ss.insertSubscription(mkSlackId(), "", "", Repository("", ""))
+        .asserting(_ should ===())
+    }
+
+    "should return Unit when successfully updating the same repo twice" in { ss =>
+      val user2   = user + "_2"
+      val slackId = mkSlackId(Some(user2))
+
+      (for {
+        _ <- ss.insertSubscription(slackId, user2, channel1, repoOne)
+        b <- ss.insertSubscription(slackId, user2, channel2, repoOne)
+      } yield b).asserting(_ should ===())
+
+    }
+
+  }
+
+  "GetSubscription " - {
+    " should return a UserNameNotFound error when no records exist in the DB" in { ss =>
+      ss.getSubscriptions(SlackUserId(UUID.randomUUID())).assertThrows[UserNameNotFound]
+    }
+
+    " should return a SubscriptionsResponse with a single record that was inserted" in { ss =>
+      val user3   = user + "_3"
+      val slackId = mkSlackId(Some(user3))
+
+      (for {
+        _   <- ss.insertSubscription(slackId, user3, channel1, repoOne)
+        res <- ss.getSubscriptions(slackId)
+      } yield res).asserting {
+        case SubscriptionsResponse(list) if list.size == 1 => pass
+        case _                                             => fail
+      }
+    }
+
+    " should return an updated record when a repo is subscribed again" in { ss =>
+      val user4   = user + "_4"
+      val slackId = mkSlackId(Some(user4))
+
+      (for {
+        _    <- ss.insertSubscription(slackId, user4, channel1, repoOne)
+        res1 <- ss.getSubscriptions(slackId)
+        _    <- ss.insertSubscription(slackId, user4, channel2, repoOne)
+        res2 <- ss.getSubscriptions(slackId)
+      } yield res1 -> res2).asserting {
+        case (
+              SubscriptionsResponse(List(Subscription(_, _, time1))),
+              SubscriptionsResponse(List(Subscription(_, _, time2)))
+            ) if time2.toInstant.toEpochMilli > time1.toInstant.toEpochMilli =>
+          pass
+        case _ => fail
+      }
+    }
+
+    "should return multiple records for a single user" in { ss =>
+      val user5   = user + "_5"
+      val slackId = mkSlackId(Some(user5))
+
+      (for {
+        _   <- ss.insertSubscription(slackId, user5, channel1, repoOne)
+        _   <- ss.insertSubscription(slackId, user5, channel1, repoTwo)
+        res <- ss.getSubscriptions(slackId)
+      } yield res).asserting {
+        case SubscriptionsResponse(
+              data @ List(Subscription(_, _, time1), Subscription(_, _, time2))
+            )
+            if data === List(
+              Subscription(
+                Organisation(repoOne.organization),
+                Repositoryy(repoOne.repository),
+                time1
+              ),
+              Subscription(
+                Organisation(repoTwo.organization),
+                Repositoryy(repoTwo.repository),
+                time2
+              )
+            ) =>
+          pass
+        case _ => fail
+      }
     }
   }
 
-  private def dropTables(db: HikariTransactor[IO]): IO[Unit] = {
-    db.configure { dataSource =>
-      IO.delay {
-        Flyway.configure().dataSource(dataSource).load().clean()
-      } *> Async[IO].unit
+  "DeleteSubscription " - {
+    "should return a UserNameNotFound error when a user is not found" in { ss =>
+      ss.deleteSubscription(mkSlackId(), RepoCarrier(repoOne)).assertThrows[UserNameNotFound]
+    }
+
+    "should return a Unit response when data is deleted" in { ss =>
+      val user6   = user + "_6"
+      val slackId = mkSlackId(Some(user6))
+
+      (for {
+        _   <- ss.insertSubscription(slackId, user6, channel1, repoOne)
+        res <- ss.deleteSubscription(slackId, RepoCarrier(repoOne))
+      } yield res).asserting(_ should ===())
+    }
+
+    "should return a RepositoryNotFound error when a repository is not found on your subscription" in {
+      ss =>
+        val user7   = user + "_7"
+        val slackId = mkSlackId(Some(user7))
+
+        (for {
+          _   <- ss.insertSubscription(slackId, user7, channel1, repoOne)
+          res <- ss.deleteSubscription(slackId, RepoCarrier(repoTwo))
+        } yield res).assertThrows[RepositoryNotFound]
+    }
+
+    "should remove a single subscription for a user" in { ss =>
+      val user8   = user + "_8"
+      val slackId = mkSlackId(Some(user8))
+
+      (for {
+        _   <- ss.insertSubscription(slackId, user8, channel1, repoOne)
+        _   <- ss.insertSubscription(slackId, user8, channel1, repoTwo)
+        _   <- ss.deleteSubscription(slackId, RepoCarrier(repoOne))
+        res <- ss.getSubscriptions(slackId)
+      } yield res).asserting(_.subscriptions.length shouldBe 1)
     }
   }
-
-  //TODO
-  //
-  // IT: Tests are being refactored and will come in a future PR
-
-  "GetSubscription should return a UserNameNotFound error when no records exist in the DB" in {
-    db =>
-      SubscribeService
-        .make[IO](db)
-        .getSubscriptions(SlackUserId(UUID.randomUUID()))
-        .assertThrows[UserNameNotFound]
-  }
-
-  "InsertSubscription should return a Unit response when successfully inserting into the DB" in {
-    db =>
-      SubscribeService
-        .make[IO](db)
-        .insertSubscription(
-          SlackUserId(UUID.randomUUID()),
-          "Samir_Kah",
-          "/random",
-          RepoCarrier(
-            Repository(
-              "Zamirk",
-              "Huffman-tree-encode-decode"
-            )
-          )
-        )
-        .asserting(_ should be())
-  }
-
-  "GetSubscription should return a result when finding data in the DB" in { db =>
-    val s = SubscribeService
-      .make[IO](db)
-
-    val userId = SlackUserId(UUID.nameUUIDFromBytes("Samir_Kah1001".getBytes()))
-
-    (for {
-      _ <- s.insertSubscription(
-        userId,
-        "Samir_Kah1001",
-        "/random",
-        RepoCarrier(
-          Repository(
-            "Zamirk",
-            "Snowplow-schema-validation"
-          )
-        )
-      )
-      sub <- s.getSubscriptions(userId)
-    } yield sub).asserting(_.subscriptions.length shouldBe 1)
-  }
-
-  "DeleteSubscription should return a Unit response when successfully removing a row from the DB" in {
-    db =>
-      SubscribeService
-        .make[IO](db)
-        .deleteSubscription(
-          SlackUserId(UUID.randomUUID()),
-          RepoCarrier(
-            Repository(
-              "Zamirk",
-              "Huffman-tree-encode-decode"
-            )
-          )
-        )
-        .assertThrows[UserNameNotFound]
-  }
-
 }
