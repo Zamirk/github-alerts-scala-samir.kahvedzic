@@ -1,23 +1,27 @@
 package service.route.endpoints
 
-import cats.MonadThrow
 import org.http4s.Response
 import service.domain.errors.ApiErrors.BadRepositoryException.InvalidRepository
 import service.domain.errors.ApiErrors.SubscriberServiceException._
-import cats.effect.Async
-import cats.free.Free
+import cats.effect._
 import org.http4s.dsl._
 import service.domain.errors.ApiErrors.ApiRouteError.UsernameInvalidFormat
-import java.util.UUID
+import cats.implicits._
+import org.http4s.circe.CirceEntityEncoder._
 
+import java.util.UUID
 class DefaultRoute[F[_]]()(implicit F: Async[F]) extends Http4sDsl[F] {
 
   type ThrowToResponseF = PartialFunction[Throwable, F[Response[F]]]
 
-  protected def validateUUID(username: String): F[UUID] = try {
-    F.pure(UUID.nameUUIDFromBytes(username.getBytes))
-  } catch {
-    case _: Throwable => MonadThrow[F].raiseError(UsernameInvalidFormat(username))
+  protected def validateUUID(username: String): F[UUID] = {
+    Async[F]
+      .delay {
+        UUID.nameUUIDFromBytes(username.getBytes)
+      }
+      .adaptError({ _ =>
+        UsernameInvalidFormat(username): Throwable
+      }: PartialFunction[Throwable, Throwable])
   }
 
   val userNameValidation: ThrowToResponseF = {
