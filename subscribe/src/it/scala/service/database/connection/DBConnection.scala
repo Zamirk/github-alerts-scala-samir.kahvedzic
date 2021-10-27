@@ -8,24 +8,23 @@ import org.flywaydb.core.Flyway
 
 object DBConnection {
 
+  val driver   = "org.postgresql.Driver"
+  val url      = "jdbc:postgresql://localhost:5436/test"
+  val user     = "postgres"
+  val password = "mysecretpassword"
+
   def buildTransactor(): Resource[IO, HikariTransactor[IO]] = {
     for {
       db <- for {
         ce <- ExecutionContexts.fixedThreadPool[IO](32)
-        xa <- HikariTransactor.newHikariTransactor[IO](
-          "org.postgresql.Driver",
-          "jdbc:postgresql://localhost:5436/test",
-          "postgres",
-          "mysecretpassword",
-          ce
-        )
+        xa <- HikariTransactor.newHikariTransactor[IO](driver, url, user, password, ce)
       } yield xa
     } yield db
   }
 
-  val fw = Flyway
+  val fw: Flyway = Flyway
     .configure()
-    .dataSource("jdbc:postgresql://localhost:5436/test", "postgres", "mysecretpassword")
+    .dataSource(url, user, password)
     .load()
 
 }

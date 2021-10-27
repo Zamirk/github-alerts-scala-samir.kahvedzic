@@ -6,6 +6,7 @@ import doobie.scalatest.{AnalysisMatchers, IOChecker}
 import doobie.util.transactor.Transactor
 import org.scalatest._
 import org.scalatest.freespec.AnyFreeSpec
+import service.database.connection.DBConnection
 import service.database.connection.DBConnection.fw
 import service.database.queries.SubscribeServiceQueries
 import service.domain.ApiModels.{RepoId, SlackUserId}
@@ -79,10 +80,10 @@ trait MatcherChecks[F[_]]
   }
 
   lazy val transactor = Transactor.fromDriverManager[F](
-    "org.postgresql.Driver",
-    "jdbc:postgresql://localhost:5436/test",
-    "postgres",
-    "mysecretpassword"
+    DBConnection.driver,
+    DBConnection.url,
+    DBConnection.user,
+    DBConnection.password
   )
 
 }
