@@ -12,7 +12,7 @@ trait SubscribeServiceAlg[F[_]] {
       user: String,
       channel: String,
       r: Repository,
-      e: RequestType = RequestType.All
+      e: RequestType = RequestType.OpenPR
   ): F[Unit]
 
   def deleteSubscription(s: SlackUserId, sub: RepoCarrier): F[Unit]

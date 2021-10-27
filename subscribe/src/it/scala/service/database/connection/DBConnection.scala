@@ -1,10 +1,11 @@
 package service.database.connection
 
+import cats.effect.IO
 import cats.effect.kernel.Resource
-import cats.effect.{Async, IO}
 import doobie.hikari.HikariTransactor
 import doobie.util.ExecutionContexts
 import org.flywaydb.core.Flyway
+
 object DBConnection {
 
   def buildTransactor(): Resource[IO, HikariTransactor[IO]] = {

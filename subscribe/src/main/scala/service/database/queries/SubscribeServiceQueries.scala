@@ -1,6 +1,5 @@
 package service.database.queries
 
-import doobie.util.update.Update
 import service.domain.DatabaseModels._
 import doobie.postgres.implicits._
 import service.domain.DatabaseModels.RequestType._
@@ -8,30 +7,34 @@ import doobie.implicits._
 import service.database.converters.RequestType._
 import service.database.converters.DBSubscription._
 import service.database.converters.DBRepository._
-import cats._
-import cats.data._
-import cats.implicits._
 import doobie._
 import doobie.implicits._
 import io.circe._
-import io.circe.jawn._
 import io.circe.syntax._
-
-import java.awt.Point
-import org.postgresql.util.PGobject
 import service.domain.ApiModels.{RepoId, SlackUserId, Subscription}
 import service.database.converters.Subscription.subscriptionRead
-
 import java.util.UUID
 
 object SubscribeServiceQueries {
 
   def existsUser(s: SlackUserId): Query0[Boolean] = {
-    sql"""SELECT exists(SELECT 1 FROM users where user_id=${s.uuid}) AS exists""".query[Boolean]
+    sql"""
+         SELECT exists(
+             SELECT 1 FROM users
+             WHERE user_id=${s.uuid}
+        ) AS exists
+        """.query[Boolean]
   }
-  def existsRepo(s: RepoId): Query0[Boolean] = {
-    sql"""SELECT exists(SELECT 1 FROM repositories where repository_id=${s.uuid}) AS exists"""
-      .query[Boolean]
+
+  def existsRepo(sId: SlackUserId, rId: RepoId): Query0[Boolean] = {
+    sql"""
+    SELECT exists(
+        SELECT 1 FROM repositories r, subscriptions s
+        WHERE r.repository_id = ${rId.uuid}
+        AND s.repository_id = ${rId.uuid}
+        AND s.user_id = ${sId.uuid}
+    ) AS exists
+    """.query[Boolean]
   }
 
   def getSubscriptions(s: SlackUserId): Query0[Subscription] =
@@ -49,37 +52,35 @@ object SubscribeServiceQueries {
         WHERE subscriptions.user_id=${s.uuid} AND subscriptions.repository_id=${r.uuid}
     """.update
 
-  def insertUser(
+  def upsertUser(
       user_id: SlackUserId,
       slack_user_id: String,
       slack_channel_id: String
   ): Update0 =
-    sql"""INSERT INTO users (user_id, slack_user_id, slack_channel_id) VALUES ($user_id, $slack_user_id, $slack_channel_id)""".update
+    sql"""INSERT INTO users (user_id, slack_user_id, slack_channel_id)
+                            VALUES ($user_id, $slack_user_id, $slack_channel_id)
+         ON CONFLICT (user_id)
+         DO UPDATE SET slack_channel_id = $slack_channel_id 
+         WHERE users.user_id = $user_id
+             AND
+        users.slack_user_id = $slack_user_id""".update
 
-  def withColumns(c: List[String]): String =
-    s""" ( ${c.mkString(",")}  ) VALUES ( ${List.fill(c.length)("?").mkString(",")}  ) """
+  def upsertRepository(db: DBRepository): Update0 =
+    sql"""INSERT INTO repositories (repository_id, owner, repository) VALUES (${db.repository_id}, ${db.owner}, ${db.repository})
+         ON CONFLICT (repository_id)
+         DO UPDATE SET owner = ${db.owner}, repository = ${db.repository}
+         WHERE repositories.repository_id = ${db.repository_id}
+         """.update
 
-  def insertRepository(): Update[DBRepository] =
-    Update[DBRepository](
-      s"""INSERT INTO repositories """ + withColumns(
-        List(
-          "repository_id",
-          "owner",
-          "repository"
-        )
-      )
-    )
-
-  def insertSubscription(): Update[DBSubscription] =
-    Update[DBSubscription](
-      s"""INSERT INTO subscriptions """ + withColumns(
-        List(
-          "user_id",
-          "repository_id",
-          "subscribed_at",
-          "subscription_type"
-        )
-      )
-    )
+  def insertSubscription(s: DBSubscription): Update0 =
+    sql"""INSERT INTO subscriptions (user_id, repository_id, subscribed_at, subscription_type)
+            VALUES (${s.user_id}, ${s.repository_id}, ${s.subscribed_at}, ${s.subscription_type})
+         ON CONFLICT (user_id, repository_id)
+         DO UPDATE
+             SET subscription_type = ${s.subscription_type}, subscribed_at = ${s.subscribed_at}
+         WHERE subscriptions.user_id = ${s.user_id}
+             AND
+        subscriptions.repository_id = ${s.repository_id}
+         """.update
 
 }

@@ -14,7 +14,6 @@ object RequestType {
         case ApprovePR.dbString => MergePR
         case ApprovePR.dbString => ApprovePR
         case DeclinePR.dbString => DeclinePR
-        case All.dbString       => All
       }).toRight(s"Value '$s' is not a valid RequestType")
     )
 
@@ -24,7 +23,6 @@ object RequestType {
       case MergePR   => MergePR.dbString
       case ApprovePR => ApprovePR.dbString
       case DeclinePR => DeclinePR.dbString
-      case All       => All.dbString
     }
 }
 object DBRepository {
