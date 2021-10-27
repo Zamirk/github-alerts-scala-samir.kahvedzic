@@ -1,7 +1,8 @@
 package service.algebras
 
+import org.http4s.Status
 import service.domain.ApiModels
 
 trait GithubApiAlg[F[_]] {
-  def validateRepo(repo: ApiModels.RepoCarrier): F[Unit]
+  def validateRepo(repo: ApiModels.RepoCarrier): F[Status]
 }
