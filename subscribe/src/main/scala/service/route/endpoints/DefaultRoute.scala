@@ -19,7 +19,7 @@ class DefaultRoute[F[_]]()(implicit F: Async[F]) extends Http4sDsl[F] {
       .delay {
         UUID.nameUUIDFromBytes(username.getBytes)
       }
-      .adaptError(_ => UsernameInvalidFormat(username))
+      .adaptError(_ => UsernameInvalidFormat(username): Throwable)
   }
 
   val userNameValidation: ThrowToResponseF = {
