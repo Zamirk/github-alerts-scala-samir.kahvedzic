@@ -1,6 +1,5 @@
 package service.interpreters
 
-import net.manub.embeddedkafka.schemaregistry.EmbeddedKafka
 import cats.effect.IO
 import net.manub.embeddedkafka.schemaregistry._
 import fs2.kafka.vulcan.{Auth, AvroSettings, SchemaRegistryClientSettings, avroDeserializer}
@@ -15,11 +14,15 @@ import org.scalatest.matchers.should.Matchers
 import service.domain.ConfigModels.KeyValueMessageHolder
 import service.domain.Kafka.{KafkaMessage, Operation}
 import service.domain.Kafka.Operation.{DeleteSubscription, NewSubscription}
+import io.github.embeddedkafka.schemaregistry.EmbeddedKafka
 
-class ProducerSpec extends AsyncFreeSpec with Matchers with AsyncIOSpec with EmbeddedKafka {
+class ProducerSpec extends AsyncFreeSpec with Matchers with AsyncIOSpec {
 
-  val (topic, clientId) = ("subscription-topic", "client")
-  val (kp, zkp, srp)    = (12345, 12346, 12347)
+  val (topic, clientId, groupId) = ("subscription-topic", "client", "groupId")
+  val (kp, zkp, srp)             = (12345, 12346, 12347)
+  val (org, repo, slackId)       = ("47Deg", "Repo", "123")
+
+  val auth: Auth = Auth.Basic("user", "password")
 
   private def createConsumer(
       s: AvroSettings[IO],
@@ -33,16 +36,8 @@ class ProducerSpec extends AsyncFreeSpec with Matchers with AsyncIOSpec with Emb
       )
   }
 
-  def generateMessage(o: Operation): KeyValueMessageHolder[String, KafkaMessage] = {
-    KeyValueMessageHolder(
-      "123",
-      KafkaMessage(
-        o,
-        "47Deg",
-        "Repo"
-      )
-    )
-  }
+  def generateMessage(o: Operation): KeyValueMessageHolder[String, KafkaMessage] =
+    KeyValueMessageHolder(slackId, KafkaMessage(o, org, repo))
 
   val newSubscriptionMessage: KeyValueMessageHolder[String, KafkaMessage] = generateMessage(
     NewSubscription
@@ -59,15 +54,11 @@ class ProducerSpec extends AsyncFreeSpec with Matchers with AsyncIOSpec with Emb
     )
       .withAutoOffsetReset(AutoOffsetReset.Earliest)
       .withEnableAutoCommit(true)
-      .withGroupId("groupId")
+      .withGroupId(groupId)
       .withClientId(clientId)
 
   def genAvroSettings(port: Int): AvroSettings[IO] =
-    AvroSettings {
-      SchemaRegistryClientSettings[IO](
-        s"http://localhost:$port"
-      ).withAuth(Auth.Basic("user", "password"))
-    }
+    AvroSettings(SchemaRegistryClientSettings[IO](s"http://localhost:$port").withAuth(auth))
 
   "Consumer successfully receives messages sent my Producer" in {
 
@@ -100,10 +91,9 @@ class ProducerSpec extends AsyncFreeSpec with Matchers with AsyncIOSpec with Emb
           )
       listOfMessages =
         for {
-          _ <- IO(createCustomTopic(topic))
+          _ <- IO(EmbeddedKafka.createCustomTopic(topic))
           _ <- producer.sendMessage(newSubscriptionMessage)
           _ <- producer.sendMessage(deleteSubscriptionMessage)
-
           message <- createConsumer(s, a)
             .evalTap(_.subscribeTo(topic))
             .evalTap(_.seekToBeginning)
