@@ -13,8 +13,8 @@ import org.http4s.Uri
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 import service.domain.ConfigModels.KeyValueMessageHolder
-import service.domain.Kafka.KafkaMessage
-import service.domain.Kafka.Operation.{DELETE_SUBSCRIPTION, NEW_SUBSCRIPTION}
+import service.domain.Kafka.{KafkaMessage, Operation}
+import service.domain.Kafka.Operation.{DeleteSubscription, NewSubscription}
 
 class ProducerSpec extends AsyncFreeSpec with Matchers with AsyncIOSpec with EmbeddedKafka {
 
@@ -33,22 +33,23 @@ class ProducerSpec extends AsyncFreeSpec with Matchers with AsyncIOSpec with Emb
       )
   }
 
-  val message: KeyValueMessageHolder[String, KafkaMessage] = KeyValueMessageHolder(
-    "123",
-    KafkaMessage(
-      NEW_SUBSCRIPTION,
-      "47Deg",
-      "Repo"
+  def generateMessage(o: Operation): KeyValueMessageHolder[String, KafkaMessage] = {
+    KeyValueMessageHolder(
+      "123",
+      KafkaMessage(
+        o,
+        "47Deg",
+        "Repo"
+      )
     )
+  }
+
+  val newSubscriptionMessage: KeyValueMessageHolder[String, KafkaMessage] = generateMessage(
+    NewSubscription
   )
 
-  val message2: KeyValueMessageHolder[String, KafkaMessage] = KeyValueMessageHolder(
-    "123",
-    KafkaMessage(
-      DELETE_SUBSCRIPTION,
-      "47Deg",
-      "Repo"
-    )
+  val deleteSubscriptionMessage: KeyValueMessageHolder[String, KafkaMessage] = generateMessage(
+    DeleteSubscription
   )
 
   def genConsumerSettings(s: AvroSettings[IO]): ConsumerSettings[IO, String, KafkaMessage] =
@@ -100,8 +101,8 @@ class ProducerSpec extends AsyncFreeSpec with Matchers with AsyncIOSpec with Emb
       listOfMessages =
         for {
           _ <- IO(createCustomTopic(topic))
-          _ <- producer.sendMessage(message)
-          _ <- producer.sendMessage(message2)
+          _ <- producer.sendMessage(newSubscriptionMessage)
+          _ <- producer.sendMessage(deleteSubscriptionMessage)
 
           message <- createConsumer(s, a)
             .evalTap(_.subscribeTo(topic))
@@ -113,6 +114,6 @@ class ProducerSpec extends AsyncFreeSpec with Matchers with AsyncIOSpec with Emb
             .toList
         } yield message
     } yield listOfMessages
-  }.use(_.asserting(_ shouldBe List(message.value)))
+  }.use(_.asserting(_ shouldBe List(newSubscriptionMessage.value)))
 
 }

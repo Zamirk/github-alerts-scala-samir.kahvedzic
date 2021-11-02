@@ -62,8 +62,11 @@ trait MatcherChecks[F[_]]
     SubscribeServiceQueries.deleteSubscription(id, id2) must typecheck
   }
 
-//TODO Solution found. Will be fixed in future PR
-//Note: Test failing or unknown reason
+//TODO Solution found. Will be proposed in future PR
+  /*
+      A working solution was found using ZonedDateTime instead of OffSetDateTime,
+      updating postgres version may also be required.
+   */
 //OffsetDateTime does not seem be convertable to TIMESTAMPTZ on the JDBC level
 //Seems to work at runtime regardless of tests, interestingly insertion tests seem to pass.
 

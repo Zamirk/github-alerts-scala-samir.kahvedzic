@@ -12,7 +12,7 @@ import service.algebras.kafka.ProducerAlg
 import service.algebras.services.{GithubApiAlg, SubscribeServiceAlg}
 import service.domain.ConfigModels.KeyValueMessageHolder
 import service.domain.Kafka
-import service.domain.Kafka.Operation.DELETE_SUBSCRIPTION
+import service.domain.Kafka.Operation.DeleteSubscription
 import service.domain.Kafka.{Operation, SubscriptionRecord}
 import service.route.HTTPServer.MProducer
 
@@ -56,7 +56,7 @@ final case class SubscriberServiceRoute[F[_]](
   private def sendKafkaMessage(
       userName: String,
       d: RepoCarrier,
-      o: Operation = Operation.NEW_SUBSCRIPTION
+      o: Operation = Operation.NewSubscription
   ): F[Unit] = {
     p.sendMessage(
       KeyValueMessageHolder(
@@ -77,7 +77,7 @@ final case class SubscriberServiceRoute[F[_]](
         for {
           uuid <- validateUUID(userName)
           _    <- service.deleteSubscription(SlackUserId(uuid), d)
-          _    <- sendKafkaMessage(userName, d, DELETE_SUBSCRIPTION)
+          _    <- sendKafkaMessage(userName, d, DeleteSubscription)
           res  <- NoContent()
         } yield res
     ).handleErrorWith {
