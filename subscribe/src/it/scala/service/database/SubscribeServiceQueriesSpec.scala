@@ -31,7 +31,7 @@ trait MatcherChecks[F[_]]
 
   override def afterAll(): Unit = {
     (Async[IO].delay {
-      fw.migrate()
+      fw.clean()
     } *> Async[IO].unit).unsafeRunSync()
 
   }
@@ -62,7 +62,7 @@ trait MatcherChecks[F[_]]
     SubscribeServiceQueries.deleteSubscription(id, id2) must typecheck
   }
 
-//TODO Fix this or alter types
+//TODO Solution found. Will be fixed in future PR
 //Note: Test failing or unknown reason
 //OffsetDateTime does not seem be convertable to TIMESTAMPTZ on the JDBC level
 //Seems to work at runtime regardless of tests, interestingly insertion tests seem to pass.

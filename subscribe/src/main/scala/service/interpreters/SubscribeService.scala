@@ -1,7 +1,6 @@
 package service.interpreters
 import cats._
 import doobie.Transactor
-import service.algebras.SubscribeServiceAlg
 import service.domain.errors.ApiErrors.SubscriberServiceException._
 import service.domain.ApiModels._
 import service.domain.DatabaseModels._
@@ -11,6 +10,7 @@ import cats.implicits.toFunctorOps
 import doobie.implicits._
 import cats.implicits._
 import doobie.free.connection.{ConnectionIO, ConnectionOp}
+import service.algebras.services.SubscribeServiceAlg
 import service.database.queries.SubscribeServiceQueries
 import service.domain.ApiModels.Subscription.{Organisation, Repositoryy}
 

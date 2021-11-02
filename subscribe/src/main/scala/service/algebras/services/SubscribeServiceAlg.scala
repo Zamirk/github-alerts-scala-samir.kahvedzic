@@ -1,4 +1,4 @@
-package service.algebras
+package service.algebras.services
 
 import service.domain.ApiModels._
 import service.domain.DatabaseModels.RequestType

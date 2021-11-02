@@ -5,12 +5,12 @@ import cats.MonadThrow
 import cats.implicits.catsSyntaxMonadError
 import org.http4s.Status
 import org.http4s.client.Client
-import service.algebras.GithubApiAlg
 import service.domain.errors.ApiErrors.BadRepositoryException.InvalidRepository
 import org.http4s.implicits._
 import service.domain.errors.ApiErrors.SubscriberServiceException.UnexpectedError
 import service.domain.ApiModels
 import org.http4s.Status._
+import service.algebras.services.GithubApiAlg
 
 object GithubApi {
 

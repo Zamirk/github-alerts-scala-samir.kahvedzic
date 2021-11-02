@@ -1,4 +1,4 @@
-package service.algebras
+package service.algebras.services
 
 import org.http4s.Status
 import service.domain.ApiModels

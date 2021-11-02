@@ -11,11 +11,13 @@ import org.http4s.{Method, Request, Response, Uri}
 import org.scalatest.compatible.Assertion
 import org.scalatest.freespec.AsyncFreeSpec
 import org.typelevel.log4cats.noop.NoOpLogger
-import service.algebras.{GithubApiAlg, SubscribeServiceAlg}
+import service.algebras.kafka.ProducerAlg
+import service.algebras.services.{GithubApiAlg, SubscribeServiceAlg}
 import service.domain.ApiModels._
+import service.domain.{ConfigModels, Kafka}
 import service.route.helpers.DefaultAssertions._
 import service.route.helpers.SampleData
-import service.interpreters.{GithubApi, SubscribeService}
+import service.interpreters.{GithubApi, Producer, SubscribeService}
 
 import scala.concurrent.ExecutionContext
 
@@ -23,7 +25,7 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
   override implicit def executionContext: ExecutionContext =
     scala.concurrent.ExecutionContext.global
 
-  val malformedJson = Some("Malformed Json")
+  val malformedJson: Option[String] = Some("Malformed Json")
 
   val uuid_1 = """Samir_Kah"""
   val uuid_2 = """Ali_Shah"""
@@ -34,16 +36,23 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
     r.body.compile.toVector.unsafeRunSync().map(_.toChar).mkString
   }
 
+  type M = ConfigModels.KeyValueMessageHolder[String, Kafka.KafkaMessage]
+
+  def fail(): Assertion = assert(false)
+  def pass(): Assertion = assert(true)
+
   private def assertRequest[F[_]: Async](
       request: Request[F],
       subscribeService: Option[SubscribeServiceAlg[F]] = None,
       githubApi: Option[GithubApiAlg[F]] = None,
+      producer: Option[ProducerAlg[F, M]] = None,
       assertion: Response[F] => Assertion
   ): F[Assertion] = {
     HTTPServer
       .generateRouter[F](
         subscribeService.getOrElse(SubscribeService.stub[F]),
         githubApi.getOrElse(GithubApi.stub[F]),
+        producer.getOrElse(Producer.stub1),
         NoOpLogger[F]
       )
       .orNotFound(
@@ -105,8 +114,8 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
           request = buildRequest(s"/subscription/$uuid_1"),
           assertion = (r: Response[IO]) =>
             parse(decodeString(r)) match {
-              case Left(_)  => assert(false)
-              case Right(_) => assert(true)
+              case Left(_)  => fail()
+              case Right(_) => pass()
             }
         )
       }
@@ -117,10 +126,7 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
           request = buildRequest(s"/subscription/$uuid_1"),
           assertion = (r: Response[IO]) =>
             decode[SubscriptionsResponse](decodeString(r)) match {
-              case Left(a) => {
-                println(a)
-                assert(false)
-              }
+              case Left(_)     => fail()
               case Right(data) => assert(data === SampleData.sampleData)
             }
         )
@@ -307,7 +313,7 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
         ).withEntity(SampleData.validUrlEncodedData),
         assertion = (r: Response[IO]) =>
           decode[SlackResponseBody](decodeString(r)) match {
-            case Left(_) => assert(false)
+            case Left(_) => fail()
             case Right(data) =>
               assert(
                 data === SlackResponseBody(
