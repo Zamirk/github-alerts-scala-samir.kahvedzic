@@ -1,3 +1,4 @@
+import Dependencies.Version.testcontainersScalaVersion
 import sbt._
 
 object Dependencies {
@@ -24,6 +25,9 @@ object Dependencies {
     lazy val fs2KafkaVer                        = "2.2.0"
     lazy val embeddedKafkaVer                   = "2.8.1"
     lazy val embeddedkafkaSchemaRegistryVersion = "6.2.1"
+
+    lazy val testcontainersScalaVersion = "0.39.8"
+
   }
 
   lazy val resolversList: List[MavenRepository] =
@@ -39,11 +43,12 @@ object Dependencies {
   )
 
   lazy val kafkaTesting: Seq[ModuleID] = Seq(
-    "io.github.embeddedkafka" %% "embedded-kafka"                 % Version.embeddedKafkaVer                   % Test,
-    "io.github.embeddedkafka" %% "embedded-kafka-schema-registry" % Version.embeddedkafkaSchemaRegistryVersion % Test
+    "com.dimafeng" %% "testcontainers-scala-kafka"     % Version.testcontainersScalaVersion % "test",
+    "com.dimafeng" %% "testcontainers-scala-scalatest" % Version.testcontainersScalaVersion % "test",
+    "com.dimafeng" %% "testcontainers-scala-mysql"     % Version.testcontainersScalaVersion % "test"
   )
 
-  lazy val libs: Seq[ModuleID] =
+  lazy val commonDeps: Seq[ModuleID] =
     http4s ++
       doobie ++
       flyway ++

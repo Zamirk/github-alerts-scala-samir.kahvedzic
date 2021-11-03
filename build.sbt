@@ -1,4 +1,4 @@
-import Dependencies.{libs, resolversList}
+import Dependencies.{commonDeps, resolversList}
 
 ThisBuild / scalaVersion := "2.13.7"
 
@@ -9,7 +9,7 @@ lazy val subscribe = (project in file("subscribe"))
     name := "subscribe",
     version := "0.0.1-SNAPSHOT",
     scalafmtOnly := true,
-    libraryDependencies ++= libs,
+    libraryDependencies ++= commonDeps,
     resolvers := resolversList,
     addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
   )

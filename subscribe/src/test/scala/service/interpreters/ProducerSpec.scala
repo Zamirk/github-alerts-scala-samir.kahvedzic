@@ -1,38 +1,27 @@
 package service.interpreters
 
 import cats.effect.IO
-import net.manub.embeddedkafka.schemaregistry._
-import fs2.kafka.vulcan.{Auth, AvroSettings, SchemaRegistryClientSettings, avroDeserializer}
+import com.dimafeng.testcontainers.lifecycle.and
+import fs2.kafka.vulcan._
 import fs2.kafka._
-import cats.effect.Resource
-import cats.effect.testing.scalatest.AsyncIOSpec
-import fs2.Stream
-import io.github.embeddedkafka.schemaregistry.EmbeddedKafkaConfigImpl
-import org.http4s.Uri
-import org.scalatest.freespec.AsyncFreeSpec
-import org.scalatest.matchers.should.Matchers
+import org.apache.kafka.clients.admin.NewTopic
 import service.domain.ConfigModels.KeyValueMessageHolder
 import service.domain.Kafka.{KafkaMessage, Operation}
 import service.domain.Kafka.Operation.{DeleteSubscription, NewSubscription}
-import io.github.embeddedkafka.schemaregistry.EmbeddedKafka
 
-class ProducerSpec extends AsyncFreeSpec with Matchers with AsyncIOSpec {
-
+class ProducerSpec extends KafkaBaseSuite {
   val (topic, clientId, groupId) = ("subscription-topic", "client", "groupId")
-  val (kp, zkp, srp)             = (12345, 12346, 12347)
   val (org, repo, slackId)       = ("47Deg", "Repo", "123")
 
-  val auth: Auth = Auth.Basic("user", "password")
+  val auth = Auth.Basic("user", "password")
 
-  private def createConsumer(
-      s: AvroSettings[IO],
-      a: EmbeddedKafkaConfig
-  ): Stream[IO, KafkaConsumer[IO, String, KafkaMessage]] = {
-    KafkaConsumer
-      .stream(
-        genConsumerSettings(s).withBootstrapServers(
-          "localhost:" + a.kafkaPort
-        )
+  def createTopic(): IO[Unit] = {
+    val adminClientSettings: AdminClientSettings = AdminClientSettings(getKafkaAddress)
+
+    KafkaAdminClient
+      .resource[IO](adminClientSettings)
+      .use(
+        _.createTopic(new NewTopic(topic, 1, 1.toShort))
       )
   }
 
@@ -47,63 +36,53 @@ class ProducerSpec extends AsyncFreeSpec with Matchers with AsyncIOSpec {
     DeleteSubscription
   )
 
-  def genConsumerSettings(s: AvroSettings[IO]): ConsumerSettings[IO, String, KafkaMessage] =
-    ConsumerSettings[IO, String, KafkaMessage](
-      avroDeserializer[String].using(s),
-      avroDeserializer[KafkaMessage].using(s)
-    )
-      .withAutoOffsetReset(AutoOffsetReset.Earliest)
-      .withEnableAutoCommit(true)
-      .withGroupId(groupId)
-      .withClientId(clientId)
+  "Producer should send message to topic" in {
 
-  def genAvroSettings(port: Int): AvroSettings[IO] =
-    AvroSettings(SchemaRegistryClientSettings[IO](s"http://localhost:$port").withAuth(auth))
+    def getSchemaRegistryAddress: String = withContainers { case _ and schemaRegistryContainer =>
+      schemaRegistryContainer.schemaUrl
+    }
 
-  "Consumer successfully receives messages sent my Producer" in {
+    val avroSettings: AvroSettings[IO] =
+      AvroSettings {
+        SchemaRegistryClientSettings[IO](getSchemaRegistryAddress)
+          .withAuth(auth)
+      }
 
-    implicit val config: EmbeddedKafkaConfigImpl =
-      EmbeddedKafkaConfigImpl(
-        kafkaPort = kp,
-        zooKeeperPort = zkp,
-        schemaRegistryPort = srp,
-        Map(),
-        Map(),
-        Map(),
-        Map()
-      )
-    val embeddedKafka: Resource[IO, io.github.embeddedkafka.schemaregistry.EmbeddedKWithSR] =
-      Resource.make(IO(io.github.embeddedkafka.schemaregistry.EmbeddedKafka.start()))(k =>
-        IO(k.stop(true))
-      )
+    def consumerSettings[K, V](implicit
+        keyDeserializer: RecordDeserializer[IO, K],
+        valueDeserializer: RecordDeserializer[IO, V]
+    ): ConsumerSettings[IO, K, V] =
+      ConsumerSettings[IO, K, V]
+        .withBootstrapServers(
+          withContainers(
+            _.head.container.getBootstrapServers
+          )
+        )
+        .withAutoOffsetReset(AutoOffsetReset.Latest)
+        .withGroupId(groupId)
+
+    implicit val d: RecordDeserializer[IO, KafkaMessage] =
+      AvroDeserializer[KafkaMessage].using(avroSettings)
 
     for {
-      kafka <- embeddedKafka
-      a = kafka.config
-      s = genAvroSettings(a.schemaRegistryPort)
-      producer <-
-        Producer
-          .make[IO, String, KafkaMessage](
-            Uri.unsafeFromString("localhost:" + a.kafkaPort).renderString,
-            genAvroSettings(a.schemaRegistryPort),
-            clientId,
-            topic
-          )
-      listOfMessages =
-        for {
-          _ <- IO(EmbeddedKafka.createCustomTopic(topic))
-          _ <- producer.sendMessage(newSubscriptionMessage)
-          _ <- producer.sendMessage(deleteSubscriptionMessage)
-          message <- createConsumer(s, a)
-            .evalTap(_.subscribeTo(topic))
-            .evalTap(_.seekToBeginning)
-            .flatMap(_.stream)
-            .map(_.record.value)
-            .take(1)
-            .compile
-            .toList
-        } yield message
-    } yield listOfMessages
-  }.use(_.asserting(_ shouldBe List(newSubscriptionMessage.value)))
+      _ <- createTopic()
+      p <- IO(
+        Producer.make[IO, String, KafkaMessage](getKafkaAddress, avroSettings, clientId, topic)
+      )
+      _ <- p.use(_.sendMessage(newSubscriptionMessage))
+//      r <- p.use(_.sendMessage(deleteSubscriptionMessage))
+      res <- {
+        KafkaConsumer.apply
+          .stream(consumerSettings[String, KafkaMessage])
+          .evalTap(_.subscribeTo(topic))
+          .flatMap(_.stream)
+          .map(_.record.value)
+          .compile
+          .toList
+      }
+
+    } yield res
+
+  }.asserting(_ shouldBe List(KafkaMessage(NewSubscription, org, repo)))
 
 }
