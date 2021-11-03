@@ -41,11 +41,14 @@ object Dependencies {
     "com.github.fd4s" %% "fs2-kafka-vulcan" % Version.fs2KafkaVer,
     "com.github.fd4s" %% "fs2-kafka"        % Version.fs2KafkaVer
   )
-
+  val munitV           = "0.7.29"
+  val munitCatsEffectV = "1.0.5"
   lazy val kafkaTesting: Seq[ModuleID] = Seq(
-    "com.dimafeng" %% "testcontainers-scala-kafka"     % Version.testcontainersScalaVersion % "test",
-    "com.dimafeng" %% "testcontainers-scala-scalatest" % Version.testcontainersScalaVersion % "test",
-    "com.dimafeng" %% "testcontainers-scala-mysql"     % Version.testcontainersScalaVersion % "test"
+    "org.scalameta" %% "munit"                          % munitV                             % Test,
+    "org.typelevel" %% "munit-cats-effect-3"            % munitCatsEffectV                   % Test,
+    "com.dimafeng"  %% "testcontainers-scala-munit"     % Version.testcontainersScalaVersion % Test,
+    "com.dimafeng"  %% "testcontainers-scala-kafka"     % Version.testcontainersScalaVersion % "test",
+    "com.dimafeng"  %% "testcontainers-scala-scalatest" % Version.testcontainersScalaVersion % "test"
   )
 
   lazy val commonDeps: Seq[ModuleID] =

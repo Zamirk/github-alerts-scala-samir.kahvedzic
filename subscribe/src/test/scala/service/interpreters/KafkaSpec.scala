@@ -1,28 +1,44 @@
 package service.interpreters
 
 import cats.effect.IO
-import com.dimafeng.testcontainers.lifecycle.and
 import fs2.kafka.vulcan._
-import fs2.kafka._
 import org.apache.kafka.clients.admin.NewTopic
+import cats.implicits.catsSyntaxApplicativeError
+import fs2.Stream
+import fs2.kafka.{
+  AdminClientSettings,
+  AutoOffsetReset,
+  ConsumerSettings,
+  KafkaAdminClient,
+  KafkaConsumer,
+  RecordDeserializer
+}
+import org.apache.kafka.common.errors.TopicExistsException
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import service.domain.ConfigModels.KeyValueMessageHolder
 import service.domain.Kafka.{KafkaMessage, Operation}
 import service.domain.Kafka.Operation.{DeleteSubscription, NewSubscription}
 
-class ProducerSpec extends KafkaBaseSuite {
+import scala.concurrent.duration.DurationInt
+
+class KafkaSpec extends KafkaBaseSuite {
+
   val (topic, clientId, groupId) = ("subscription-topic", "client", "groupId")
   val (org, repo, slackId)       = ("47Deg", "Repo", "123")
 
   val auth = Auth.Basic("user", "password")
 
-  def createTopic(): IO[Unit] = {
+  val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+
+  def createTopic: IO[Unit] = {
     val adminClientSettings: AdminClientSettings = AdminClientSettings(getKafkaAddress)
 
-    KafkaAdminClient
-      .resource[IO](adminClientSettings)
-      .use(
-        _.createTopic(new NewTopic(topic, 1, 1.toShort))
-      )
+    KafkaAdminClient.resource[IO](adminClientSettings).use {
+      _.createTopic(new NewTopic(topic, 1, 1.toShort)).recoverWith { case _: TopicExistsException =>
+        logger.info(s"Topic $topic already exists")
+      }
+    }
   }
 
   def generateMessage(o: Operation): KeyValueMessageHolder[String, KafkaMessage] =
@@ -36,17 +52,16 @@ class ProducerSpec extends KafkaBaseSuite {
     DeleteSubscription
   )
 
-  "Producer should send message to topic" in {
-
-    def getSchemaRegistryAddress: String = withContainers { case _ and schemaRegistryContainer =>
-      schemaRegistryContainer.schemaUrl
-    }
+  test("Producer and Consumer worked using kafka and schema registry from containers") {
 
     val avroSettings: AvroSettings[IO] =
       AvroSettings {
         SchemaRegistryClientSettings[IO](getSchemaRegistryAddress)
-          .withAuth(auth)
+          .withAuth(Auth.Basic("user", "password"))
       }
+
+    implicit val d: RecordDeserializer[IO, KafkaMessage] =
+      AvroDeserializer[KafkaMessage].using(avroSettings)
 
     def consumerSettings[K, V](implicit
         keyDeserializer: RecordDeserializer[IO, K],
@@ -58,14 +73,11 @@ class ProducerSpec extends KafkaBaseSuite {
             _.head.container.getBootstrapServers
           )
         )
-        .withAutoOffsetReset(AutoOffsetReset.Latest)
+        .withAutoOffsetReset(AutoOffsetReset.Earliest)
         .withGroupId(groupId)
 
-    implicit val d: RecordDeserializer[IO, KafkaMessage] =
-      AvroDeserializer[KafkaMessage].using(avroSettings)
-
-    for {
-      _ <- createTopic()
+    val res = for {
+      _ <- createTopic
       p <- IO(
         Producer.make[IO, String, KafkaMessage](getKafkaAddress, avroSettings, clientId, topic)
       )
@@ -80,9 +92,9 @@ class ProducerSpec extends KafkaBaseSuite {
           .compile
           .toList
       }
-
     } yield res
 
-  }.asserting(_ shouldBe List(KafkaMessage(NewSubscription, org, repo)))
+    assertIO(res, List(KafkaMessage(NewSubscription, org, repo)))
+  }
 
 }
