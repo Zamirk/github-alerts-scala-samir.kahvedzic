@@ -13,7 +13,7 @@ import service.domain.ApiModels._
 import service.domain.errors.ApiErrors.SubscriberServiceException._
 
 import java.util.UUID
-import service.algebras.SubscribeServiceAlg
+import service.algebras.services.SubscribeServiceAlg
 import service.database.connection.DBConnection
 
 class SubscribeServiceImpSpec

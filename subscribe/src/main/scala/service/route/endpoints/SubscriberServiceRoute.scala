@@ -3,16 +3,23 @@ package service.route.endpoints
 import cats.effect.Async
 import org.http4s.HttpRoutes
 import org.typelevel.log4cats.Logger
-import service.algebras.{GithubApiAlg, SubscribeServiceAlg}
 import cats.implicits._
 import service.domain.ApiModels._
 import org.http4s.circe.CirceEntityDecoder._
 import org.http4s._
 import org.http4s.circe.CirceEntityEncoder._
+import service.algebras.kafka.ProducerAlg
+import service.algebras.services.{GithubApiAlg, SubscribeServiceAlg}
+import service.domain.ConfigModels.KeyValueMessageHolder
+import service.domain.Kafka
+import service.domain.Kafka.Operation.DeleteSubscription
+import service.domain.Kafka.{Operation, SubscriptionRecord}
+import service.route.HTTPServer.MProducer
 
 final case class SubscriberServiceRoute[F[_]](
     service: SubscribeServiceAlg[F],
     githubApiValidation: GithubApiAlg[F],
+    p: MProducer[F],
     logger: Logger[F]
 )(implicit F: Async[F])
     extends DefaultRoute[F] {
@@ -30,14 +37,37 @@ final case class SubscriberServiceRoute[F[_]](
         for {
           uuid <- validateUUID(userName)
           _    <- githubApiValidation.validateRepo(d)
-          _    <- service.insertSubscription(SlackUserId(uuid), userName, "/random", d.subscription)
-          res  <- Created()
+          _ <- service.insertSubscription(
+            SlackUserId(uuid),
+            userName,
+            channel = "/random",
+            r = d.subscription
+          )
+          _   <- sendKafkaMessage(userName, d)
+          res <- Created()
         } yield res
       }
     )
       .handleErrorWith {
         githubValidation.orElse(internalServerError)
       }
+  }
+
+  private def sendKafkaMessage(
+      userName: String,
+      d: RepoCarrier,
+      o: Operation = Operation.NewSubscription
+  ): F[Unit] = {
+    p.sendMessage(
+      KeyValueMessageHolder(
+        userName,
+        Kafka.KafkaMessage(
+          o,
+          d.subscription.organization,
+          d.subscription.repository
+        )
+      )
+    )
   }
 
   private def deleteSubscriptions(req: Request[F], userName: String): F[Response[F]] = {
@@ -47,6 +77,7 @@ final case class SubscriberServiceRoute[F[_]](
         for {
           uuid <- validateUUID(userName)
           _    <- service.deleteSubscription(SlackUserId(uuid), d)
+          _    <- sendKafkaMessage(userName, d, DeleteSubscription)
           res  <- NoContent()
         } yield res
     ).handleErrorWith {

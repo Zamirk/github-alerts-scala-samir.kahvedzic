@@ -6,7 +6,7 @@ import org.http4s._
 import org.http4s.circe.CirceEntityDecoder._
 import org.http4s.circe.CirceEntityEncoder._
 import org.typelevel.log4cats.Logger
-import service.algebras.{GithubApiAlg, SubscribeServiceAlg}
+import service.algebras.services.{GithubApiAlg, SubscribeServiceAlg}
 import service.domain.ApiModels.SlackCommand._
 import service.domain.ApiModels.{RepoCarrier, SlackCommand, SlackUserId}
 

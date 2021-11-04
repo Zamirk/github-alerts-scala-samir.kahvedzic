@@ -7,24 +7,29 @@ import org.http4s.dsl.Http4sDsl
 import org.http4s.server.{Router, Server}
 import org.http4s.HttpRoutes
 import org.typelevel.log4cats.{Logger, SelfAwareStructuredLogger}
-import service.algebras.{GithubApiAlg, SubscribeServiceAlg}
-import service.domain.ConfigModels.ServerConfig
+import service.algebras.kafka.ProducerAlg
+import service.algebras.services.{GithubApiAlg, SubscribeServiceAlg}
+import service.domain.ConfigModels.{KeyValueMessageHolder, ServerConfig}
+import service.domain.Kafka
 import service.route.endpoints.{SlackRoute, SubscriberServiceRoute}
 
 import scala.concurrent.ExecutionContext.global
 
 object HTTPServer {
 
+  type MProducer[F[_]] = ProducerAlg[F, KeyValueMessageHolder[String, Kafka.KafkaMessage]]
+
   def createBlazeServer[F[_]: Async](
       config: ServerConfig,
       service: SubscribeServiceAlg[F],
       logger: SelfAwareStructuredLogger[F],
+      producer: ProducerAlg[F, KeyValueMessageHolder[String, Kafka.KafkaMessage]],
       githubApi: GithubApiAlg[F]
   ): Resource[F, Server] = {
     BlazeServerBuilder[F](global)
       .bindHttp(config.port, config.host)
       .withHttpApp(
-        generateRouter(service, githubApi, logger).orNotFound
+        generateRouter(service, githubApi, producer, logger).orNotFound
       )
       .resource
   }
@@ -32,11 +37,12 @@ object HTTPServer {
   def generateRouter[F[_]: Async](
       service: SubscribeServiceAlg[F],
       githubApi: GithubApiAlg[F],
+      producer: MProducer[F],
       logger: Logger[F]
   ): HttpRoutes[F] =
     Router(
       "/health"                     -> HealthCheck[F](logger).routes,
-      "/subscription"               -> SubscriberServiceRoute[F](service, githubApi, logger).routes,
+      "/subscription"               -> SubscriberServiceRoute[F](service, githubApi, producer, logger).routes,
       "/subscription/slack/command" -> SlackRoute[F](service, githubApi, logger).routes
     )
 
