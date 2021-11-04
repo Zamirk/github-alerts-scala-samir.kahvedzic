@@ -4,23 +4,13 @@ import cats.effect.IO
 import fs2.kafka.vulcan._
 import org.apache.kafka.clients.admin.NewTopic
 import cats.implicits.catsSyntaxApplicativeError
-import fs2.Stream
-import fs2.kafka.{
-  AdminClientSettings,
-  AutoOffsetReset,
-  ConsumerSettings,
-  KafkaAdminClient,
-  KafkaConsumer,
-  RecordDeserializer
-}
+import fs2.kafka._
 import org.apache.kafka.common.errors.TopicExistsException
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import service.domain.ConfigModels.KeyValueMessageHolder
 import service.domain.Kafka.{KafkaMessage, Operation}
 import service.domain.Kafka.Operation.{DeleteSubscription, NewSubscription}
-
-import scala.concurrent.duration.DurationInt
 
 class KafkaSpec extends KafkaBaseSuite {
 
@@ -69,9 +59,7 @@ class KafkaSpec extends KafkaBaseSuite {
     ): ConsumerSettings[IO, K, V] =
       ConsumerSettings[IO, K, V]
         .withBootstrapServers(
-          withContainers(
-            _.head.container.getBootstrapServers
-          )
+          getKafkaAddress
         )
         .withAutoOffsetReset(AutoOffsetReset.Earliest)
         .withGroupId(groupId)
@@ -89,6 +77,7 @@ class KafkaSpec extends KafkaBaseSuite {
           .evalTap(_.subscribeTo(topic))
           .flatMap(_.stream)
           .map(_.record.value)
+          .take(1)
           .compile
           .toList
       }
