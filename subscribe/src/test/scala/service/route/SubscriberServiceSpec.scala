@@ -14,7 +14,8 @@ import org.typelevel.log4cats.noop.NoOpLogger
 import service.algebras.kafka.ProducerAlg
 import service.algebras.services.{GithubApiAlg, SubscribeServiceAlg}
 import service.domain.ApiModels._
-import service.domain.{ConfigModels, Kafka}
+import service.domain.ConfigModels
+import service.domain.kafka.EventServiceEvent
 import service.route.helpers.DefaultAssertions._
 import service.route.helpers.SampleData
 import service.interpreters.{GithubApi, Producer, SubscribeService}
@@ -36,7 +37,7 @@ class SubscriberServiceSpec extends AsyncFreeSpec with AsyncIOSpec {
     r.body.compile.toVector.unsafeRunSync().map(_.toChar).mkString
   }
 
-  type M = ConfigModels.KeyValueMessageHolder[String, Kafka.KafkaMessage]
+  type M = ConfigModels.KeyValueMessageHolder[String, EventServiceEvent.KafkaMessage]
 
   def fail(): Assertion = assert(false)
   def pass(): Assertion = assert(true)

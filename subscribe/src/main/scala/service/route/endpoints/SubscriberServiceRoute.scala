@@ -11,9 +11,9 @@ import org.http4s.circe.CirceEntityEncoder._
 import service.algebras.kafka.ProducerAlg
 import service.algebras.services.{GithubApiAlg, SubscribeServiceAlg}
 import service.domain.ConfigModels.KeyValueMessageHolder
-import service.domain.Kafka
-import service.domain.Kafka.Operation.DeleteSubscription
-import service.domain.Kafka.{Operation, SubscriptionRecord}
+import service.domain.kafka.EventServiceEvent.Operation.DeleteSubscription
+import service.domain.kafka.EventServiceEvent.{Operation, SubscriptionRecord}
+import service.domain.kafka.EventServiceEvent
 import service.route.HTTPServer.MProducer
 
 final case class SubscriberServiceRoute[F[_]](
@@ -61,7 +61,7 @@ final case class SubscriberServiceRoute[F[_]](
     p.sendMessage(
       KeyValueMessageHolder(
         userName,
-        Kafka.KafkaMessage(
+        EventServiceEvent.KafkaMessage(
           o,
           d.subscription.organization,
           d.subscription.repository

@@ -1,20 +1,25 @@
+import cats.data.Kleisli
 import cats.effect.{Async, ExitCode, IO, IOApp, Resource}
-import fs2.kafka.vulcan.{AvroSettings, SchemaRegistryClientSettings}
+import fs2.kafka.vulcan.{AvroSettings, SchemaRegistryClientSettings, avroSerializer}
 import org.http4s.blaze.client.BlazeClientBuilder
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import pureconfig.ConfigSource
 import pureconfig.module.catseffect.syntax.CatsEffectConfigSource
 import pureconfig.generic.auto._
-import service.algebras.kafka.ProducerAlg
+import service.algebras.kafka.{ConsumerAlg, ProducerAlg}
 import service.database.connection.DBConnection
-import service.interpreters.{GithubApi, Producer, SubscribeService}
+import service.interpreters.{Consumer, GithubApi, Producer, SubscribeService}
 import service.route.HTTPServer
 import service.domain.ConfigModels.{Config, KafkaConfig, KeyValueMessageHolder}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import cats.effect._
 import cats.syntax.all._
-import service.domain.{ConfigModels, Kafka}
+import org.typelevel.log4cats.Logger
+import service.domain.kafka.EventServiceEvent
+import service.domain.ConfigModels
+import service.domain.kafka.EventServiceEvent.Message
+import service.domain.kafka.EventServiceResponse
 import vulcan.Codec
 
 object Main extends IOApp {
@@ -28,9 +33,21 @@ object Main extends IOApp {
       transactor     <- DBConnection.dbConnection[IO](config, logger)
       _              <- Resource.liftK(logger.info(s"Creating DB Tables."))
       _              <- DBConnection.createDatabaseTables(transactor)
-      githubApi      <- BlazeClientBuilder[IO](global).resource.map(GithubApi.make[IO])
+      githubApi      <- BlazeClientBuilder[IO].resource.map(GithubApi.make[IO])
       schemaRegistry <- Resource.liftK(createSchemaRegistry[IO](config.kafka))
-      producer       <- createProducer[IO](config.kafka, schemaRegistry)(implicitly, Kafka.msgCodec)
+      producer <- createProducer[IO](config.kafka, schemaRegistry)(
+        implicitly,
+        EventServiceEvent.msgCodec
+      )
+      _ <-
+        Consumer.make[IO](
+          config.kafka.server,
+          config.kafka.clientId,
+          "1",
+          config.kafka.topic2,
+          schemaRegistry,
+          processMessage[IO](logger)
+        )
       server <- HTTPServer.createBlazeServer[IO](
         config.server,
         SubscribeService.make[IO](transactor),
@@ -40,10 +57,21 @@ object Main extends IOApp {
       )
     } yield server).use(_ => IO.never).as(ExitCode.Success)
 
+  def processMessage[F[_]: Async](
+      logger: Logger[F]
+  ): Kleisli[F, Message[
+    String,
+    EventServiceResponse.EventServiceResponse
+  ], Message[String, EventServiceResponse.EventServiceResponse]] =
+    Kleisli(m => logger.info(s"Receiving $m").as(Message(m.key, m.value)))
+
   def createProducer[F[_]: Async](kc: KafkaConfig, avroSettings: AvroSettings[F])(implicit
-      c: Codec[Kafka.KafkaMessage]
-  ): Resource[F, ProducerAlg[F, ConfigModels.KeyValueMessageHolder[String, Kafka.KafkaMessage]]] = {
-    Producer.make[F, String, Kafka.KafkaMessage](
+      c: Codec[EventServiceEvent.KafkaMessage]
+  ): Resource[F, ProducerAlg[
+    F,
+    ConfigModels.KeyValueMessageHolder[String, EventServiceEvent.KafkaMessage]
+  ]] = {
+    Producer.make[F, String, EventServiceEvent.KafkaMessage](
       kc.server,
       avroSettings,
       kc.clientId,

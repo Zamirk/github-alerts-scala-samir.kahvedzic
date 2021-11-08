@@ -18,6 +18,8 @@ object ConfigModels {
       server: String,
       schemaRegistry: SchemaRegistry,
       topic: String,
+      topic2: String,
+      topic3: String,
       clientId: String
   )
 

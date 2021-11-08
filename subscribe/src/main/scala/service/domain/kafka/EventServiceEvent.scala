@@ -1,9 +1,12 @@
-package service.domain
-import vulcan.{AvroError, Codec}
-import cats.implicits._
-import service.domain.Kafka.Operation.{DeleteSubscription, ExistingSubscription, NewSubscription}
+package service.domain.kafka
 
-object Kafka {
+import cats.implicits.catsSyntaxTuple3Semigroupal
+import service.domain.kafka.EventServiceEvent.Operation._
+import vulcan.{AvroError, Codec}
+
+object EventServiceEvent {
+
+  final case class Message[K, V](key: K, value: V)
 
   final case class SubscriptionRecord(userName: String, message: KafkaMessage)
 

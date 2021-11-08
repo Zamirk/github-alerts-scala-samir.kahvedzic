@@ -10,23 +10,24 @@ import org.typelevel.log4cats.{Logger, SelfAwareStructuredLogger}
 import service.algebras.kafka.ProducerAlg
 import service.algebras.services.{GithubApiAlg, SubscribeServiceAlg}
 import service.domain.ConfigModels.{KeyValueMessageHolder, ServerConfig}
-import service.domain.Kafka
+import service.domain.kafka.EventServiceEvent
 import service.route.endpoints.{SlackRoute, SubscriberServiceRoute}
 
 import scala.concurrent.ExecutionContext.global
 
 object HTTPServer {
 
-  type MProducer[F[_]] = ProducerAlg[F, KeyValueMessageHolder[String, Kafka.KafkaMessage]]
+  type MProducer[F[_]] =
+    ProducerAlg[F, KeyValueMessageHolder[String, EventServiceEvent.KafkaMessage]]
 
   def createBlazeServer[F[_]: Async](
       config: ServerConfig,
       service: SubscribeServiceAlg[F],
       logger: SelfAwareStructuredLogger[F],
-      producer: ProducerAlg[F, KeyValueMessageHolder[String, Kafka.KafkaMessage]],
+      producer: ProducerAlg[F, KeyValueMessageHolder[String, EventServiceEvent.KafkaMessage]],
       githubApi: GithubApiAlg[F]
   ): Resource[F, Server] = {
-    BlazeServerBuilder[F](global)
+    BlazeServerBuilder[F]
       .bindHttp(config.port, config.host)
       .withHttpApp(
         generateRouter(service, githubApi, producer, logger).orNotFound

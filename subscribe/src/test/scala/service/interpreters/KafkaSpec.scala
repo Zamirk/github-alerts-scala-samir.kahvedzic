@@ -9,8 +9,8 @@ import org.apache.kafka.common.errors.TopicExistsException
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import service.domain.ConfigModels.KeyValueMessageHolder
-import service.domain.Kafka.{KafkaMessage, Operation}
-import service.domain.Kafka.Operation.{DeleteSubscription, NewSubscription}
+import service.domain.kafka.EventServiceEvent.{KafkaMessage, Operation}
+import service.domain.kafka.EventServiceEvent.Operation.{DeleteSubscription, NewSubscription}
 
 class KafkaSpec extends KafkaBaseSuite {
 
