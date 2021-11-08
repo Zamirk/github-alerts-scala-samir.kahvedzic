@@ -17,9 +17,9 @@ object ConfigModels {
   case class KafkaConfig(
       server: String,
       schemaRegistry: SchemaRegistry,
-      topic: String,
-      topic2: String,
-      topic3: String,
+      subscriptionTopic: String,
+      notificationTopic: String,
+      eventTopic: String,
       clientId: String
   )
 

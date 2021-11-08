@@ -77,7 +77,7 @@ class KafkaServiceResponseSpec extends KafkaBaseSuite {
               .make[IO](
                 getKafkaAddress,
                 clientId,
-                "1",
+                groupId = "1",
                 topic,
                 avroSettings,
                 processMessage[IO](logger)

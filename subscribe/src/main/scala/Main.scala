@@ -35,16 +35,13 @@ object Main extends IOApp {
       _              <- DBConnection.createDatabaseTables(transactor)
       githubApi      <- BlazeClientBuilder[IO].resource.map(GithubApi.make[IO])
       schemaRegistry <- Resource.liftK(createSchemaRegistry[IO](config.kafka))
-      producer <- createProducer[IO](config.kafka, schemaRegistry)(
-        implicitly,
-        EventServiceEvent.msgCodec
-      )
+      producer       <- createProducer[IO](config.kafka, schemaRegistry)
       _ <-
         Consumer.make[IO](
           config.kafka.server,
           config.kafka.clientId,
-          "1",
-          config.kafka.topic2,
+          groupId = "1",
+          config.kafka.eventTopic,
           schemaRegistry,
           processMessage[IO](logger)
         )
@@ -75,7 +72,7 @@ object Main extends IOApp {
       kc.server,
       avroSettings,
       kc.clientId,
-      kc.topic
+      kc.subscriptionTopic
     )
   }
 
