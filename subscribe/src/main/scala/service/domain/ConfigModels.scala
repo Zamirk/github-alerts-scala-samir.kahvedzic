@@ -20,7 +20,8 @@ object ConfigModels {
       subscriptionTopic: String,
       notificationTopic: String,
       eventTopic: String,
-      clientId: String
+      clientId: String,
+      groupId: String
   )
 
   object KafkaConfig {

@@ -40,7 +40,7 @@ object Main extends IOApp {
         Consumer.make[IO](
           config.kafka.server,
           config.kafka.clientId,
-          groupId = "1",
+          groupId = config.kafka.groupId,
           config.kafka.eventTopic,
           schemaRegistry,
           processMessage[IO](logger)
