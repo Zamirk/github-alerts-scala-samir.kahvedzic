@@ -11,17 +11,7 @@ object EventServiceResponse {
       message: String,
       organization: String,
       repository: String
-  ) {
-
-    def genUUID[F[_]: Async](o: String, r: String): F[UUID] =
-      Async[F]
-        .delay {
-          UUID.nameUUIDFromBytes((o + r).getBytes())
-        }
-        .adaptError({ _ =>
-          UsernameInvalidFormat(o + r): Throwable
-        }: PartialFunction[Throwable, Throwable])
-  }
+  )
 
   implicit val responseCodec: Codec[EventServiceResponse] =
     Codec.record(
