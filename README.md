@@ -1,5 +1,13 @@
 # Github Alerts Project 2021, 47 Degrees
 
+## Project status
+
+Historical learning prototype developed at 47 Degrees in 2021.
+
+The repository includes a subscription API, PostgreSQL persistence with Flyway migrations, Kafka messaging, and unit/integration tests.
+
+Slack command processing is unfinished: `SubscribeService.postSlackCommand` is unimplemented (`???`).
+
 ---
 Samir Kahvedzic
 
